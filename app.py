@@ -39,7 +39,7 @@ def set_background_image(image_path):
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-set_background_image("apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
+set_background_image("streamlitbg.jfif")
 
 #====================================================================================
 # HEADER SECTION
