@@ -40,7 +40,7 @@ st.markdown(
 #====================================================================================
 
 uploaded_file = st.file_uploader(
-    "Upload Hotel Booking CSV",
+    "Upload your CSV dataset to begin with the analysis",
     type=["csv"]
 )
 
