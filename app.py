@@ -40,7 +40,7 @@ st.markdown(
 #====================================================================================
 
 uploaded_file = st.file_uploader(
-    "Upload your CSV dataset to begin with the analysis",
+    "Upload your CSV dataset to begin with the Analysis",
     type=["csv"]
 )
 
