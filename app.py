@@ -46,7 +46,7 @@ set_background_image("Download Redot Engine.jfif")
 #====================================================================================
 
 st.markdown(
-    "<h1 style='text-align: center; text-transform: uppercase; color: white;'>Hotel Booking Analytics Dashboard</h1>", 
+    "<h1 style='text-align: center; text-transform: uppercase; color: white; font-weight: 700;'>Hotel Booking Analytics Dashboard</h1>", 
     unsafe_allow_html=True
 )
 
@@ -54,10 +54,12 @@ st.markdown(
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
 
-st.divider()
 st.markdown(
     """
     <style>
+    div[data-testid="stDivider"] > hr {
+        border-top: 1px solid white;
+    }
     div[data-testid="stFileUploader"] > label {
         color: white;
     }
@@ -65,6 +67,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
+st.divider()
 uploaded_file = st.file_uploader(
     "Upload your CSV dataset to begin with the Analysis",
     type=["csv"]
