@@ -19,7 +19,6 @@ st.set_page_config(
     page_title="Hotel Booking Analytics Dashboard",
     page_icon="🛎️",
     layout="wide",
-    init_sidebar_state="expanded"
 )
 
 #====================================================================================
