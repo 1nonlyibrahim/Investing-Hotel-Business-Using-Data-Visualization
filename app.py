@@ -55,6 +55,16 @@ st.markdown(
 #====================================================================================
 
 st.divider()
+st.markdown(
+    """
+    <style>
+    div[data-testid="stFileUploader"] > label {
+        color: white;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
 uploaded_file = st.file_uploader(
     "Upload your CSV dataset to begin with the Analysis",
     type=["csv"]
