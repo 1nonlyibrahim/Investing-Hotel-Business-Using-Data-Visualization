@@ -89,3 +89,11 @@ def add_bg_from_local(image_file):
     )
 # apply the image to the background
 add_bg_from_local("C:\\Users\\admin\\Downloads\\apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
+
+#====================================================================================
+# FUNCTIONS TO LOAD THE BACKGROUND IMAGE
+#====================================================================================
+
+#====================================================================================
+# FUNCTIONS TO LOAD THE BACKGROUND IMAGE
+#====================================================================================
