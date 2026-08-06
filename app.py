@@ -83,6 +83,9 @@ uploaded_file = st.file_uploader(
     type=["csv"]
 )
 
+if "show_popup" not in st.session_state:
+    st.session_state.show_popup = False
+
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
@@ -198,4 +201,3 @@ if uploaded_file is not None:
                 with close_cols[1]:
                     if st.button("Close", key="close_popup"):
                         st.session_state.show_popup = False
-                        st.rerun()
