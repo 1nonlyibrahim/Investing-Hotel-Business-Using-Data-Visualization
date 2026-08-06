@@ -80,10 +80,10 @@ if uploaded_file is not None:
     progress_text.empty()
     progress_bar_container.empty()
 
-    st.markdown(
+    success_message = st.markdown(
         """
-        <div style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
-        background-color: rgba(0, 0, 0, 0.8); padding: 15px 30px; border-radius: 8px; 
+        <div style='position: fixed; top: 100px; left: 50%; transform: translateX(-50%); 
+        background-color: rgba(0, 255, 0, 0.3); padding: 15px 30px; border-radius: 8px; 
         z-index: 9999; text-align: center;'>
         <span style='color: #00ff00; font-size: 16px; font-weight: bold;'>✅ Dataset uploaded successfully!</span>
         </div>
@@ -91,5 +91,6 @@ if uploaded_file is not None:
         unsafe_allow_html=True
     )
     time.sleep(2)
+    success_message.empty()
 
     st.divider()
