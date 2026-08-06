@@ -150,20 +150,23 @@ if uploaded_file is not None:
             margin: 20px 0;
         }
         .glowing-button button {
-            background: linear-gradient(135deg, #ff0000 0%, #cc0000 100%) !important;
+            background-color: #ff0000 !important;
             color: white !important;
-            font-weight: 900 !important;
+            font-weight: bold !important;
             font-size: 16px !important;
             padding: 12px 40px !important;
-            border: 3px solid #ff0000 !important;
+            border: 2px solid #ff0000 !important;
             border-radius: 8px !important;
-            box-shadow: 0 0 20px rgba(255, 0, 0, 1), 0 0 40px rgba(255, 0, 0, 0.9), inset 0 0 10px rgba(255, 77, 77, 0.6) !important;
+            box-shadow: none !important;
             cursor: pointer !important;
             transition: all 0.3s ease !important;
         }
         .glowing-button button:hover {
-            box-shadow: 0 0 40px rgba(255, 0, 0, 1), 0 0 80px rgba(255, 0, 0, 1), inset 0 0 15px rgba(255, 77, 77, 0.8) !important;
-            transform: scale(1.08) !important;
+            background-color: #ff0000 !important;
+            color: white !important;
+            font-weight: bold !important;
+            box-shadow: 0 0 20px rgba(255, 0, 0, 0.8), 0 0 40px rgba(255, 0, 0, 0.6) !important;
+            transform: none !important;
         }
         </style>
         """,
