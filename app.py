@@ -143,11 +143,17 @@ if uploaded_file is not None:
         .stButton>button:hover {
             transform: translateY(-1px);
         }
+        .center-button {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
+    st.markdown("<div class='center-button'>", unsafe_allow_html=True)
     if st.button("Click to validate and prepare dataset"):
         # Simple example validation/preparation steps
         with st.spinner("Validating and preparing dataset..."):
@@ -158,4 +164,17 @@ if uploaded_file is not None:
                 # example preparation: drop fully empty rows and reset index
                 df.dropna(how="all", inplace=True)
                 df.reset_index(drop=True, inplace=True)
-                st.success("Dataset validated and prepared.")
+                notify = st.markdown(
+                    """
+                    <div style='position: fixed; top: 100px; left: 50%; transform: translateX(-50%); 
+                    background-color: rgba(0, 80, 0, 0.9); padding: 15px 30px; border-radius: 8px; 
+                    border: 1px solid #4caf50; box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); 
+                    z-index: 9999; text-align: center;'>
+                    <span style='color: #b8ffb8; font-size: 16px; font-weight: bold;'>✅ Dataset validated and prepared!</span>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+                time.sleep(1.2)
+                notify.empty()
+    st.markdown("</div>", unsafe_allow_html=True)
