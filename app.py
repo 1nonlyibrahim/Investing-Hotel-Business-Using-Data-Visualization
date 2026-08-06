@@ -46,7 +46,7 @@ set_background_image("Download Redot Engine.jfif")
 #====================================================================================
 
 st.markdown(
-    "<h1 style='text-align: center; text-transform: uppercase;'>Hotel Booking Analytics Dashboard</h1>", 
+    "<h1 style='text-align: center; text-transform: uppercase; color: white;'>Hotel Booking Analytics Dashboard</h1>", 
     unsafe_allow_html=True
 )
 
