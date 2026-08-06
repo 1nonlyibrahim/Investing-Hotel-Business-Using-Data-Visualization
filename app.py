@@ -88,7 +88,7 @@ def add_bg_from_local(image_file):
         unsafe_allow_html=True
     )
 # apply the image to the background
-add_bg_from_local("C:\\Users\\admin\\Downloads\\apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
+add_bg_from_local("C:\\Users\\admin\\Desktop\\apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
 
 #====================================================================================
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
