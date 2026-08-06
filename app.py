@@ -54,7 +54,7 @@ st.markdown(
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
 
-sst.markdown(
+st.markdown(
     """
     <style>
     /* Translucent red uploader box with white text */
@@ -141,8 +141,10 @@ if uploaded_file is not None:
 #====================================================================================
 
 if uploaded_file is not None:
-    if st.button("Open window"):
-        st.session_state.show_popup = True
+    cols = st.columns([1, 2, 1])
+    with cols[1]:
+        if st.button("Open window", key="open_window"):
+            st.session_state.show_popup = True
     
     if st.session_state.get("show_popup", False):
         with st.container():
@@ -158,6 +160,8 @@ if uploaded_file is not None:
                     """,
                     unsafe_allow_html=True,
                 )
-                if st.button("Close"):
-                    st.session_state.show_popup = False
-                    st.rerun()
+                close_cols = st.columns([1, 1, 1])
+                with close_cols[1]:
+                    if st.button("Close", key="close_popup"):
+                        st.session_state.show_popup = False
+                        st.rerun()
