@@ -83,14 +83,15 @@ if uploaded_file is not None:
     success_message = st.markdown(
         """
         <div style='position: fixed; top: 100px; left: 50%; transform: translateX(-50%); 
-        background-color: rgba(0, 255, 0, 0.3); padding: 15px 30px; border-radius: 8px; 
+        background-color: rgba(0, 80, 0, 0.9); padding: 15px 30px; border-radius: 8px; 
+        border: 1px solid #4caf50; box-shadow: 0 0 20px rgba(76, 175, 80, 0.5); 
         z-index: 9999; text-align: center;'>
-        <span style='color: #00ff00; font-size: 16px; font-weight: bold;'>✅ Dataset uploaded successfully!</span>
+        <span style='color: #b8ffb8; font-size: 16px; font-weight: bold; text-shadow: 0 0 8px rgba(180, 255, 180, 0.9);'>✅ Dataset uploaded successfully!</span>
         </div>
         """,
         unsafe_allow_html=True
     )
-    time.sleep(2)
+    time.sleep(3)
     success_message.empty()
 
     st.divider()
