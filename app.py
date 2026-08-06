@@ -30,14 +30,10 @@ st.set_page_config(
 # HEADER SECTION
 #====================================================================================
 
-st.title("Hotel Booking Analytics Dashboard")
-
-st.markdown("""
-Analyze hotel booking behavior, cancellation trends,
-customer insights, and revenue performance through
-interactive visualizations.
----
-""")
+st.markdown(
+    "<h1 style='text-align: center; text-transform: uppercase;'>Hotel Booking Analytics Dashboard</h1>", 
+    unsafe_allow_html=True
+)
 
 #====================================================================================
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
