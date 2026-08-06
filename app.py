@@ -34,6 +34,7 @@ def set_background_image(image_path):
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
+        filter: blur(8px);
     }}
     </style>
     """
