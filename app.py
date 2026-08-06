@@ -127,6 +127,7 @@ if uploaded_file is not None:
 #  DATASET PREPORCESSING
 #====================================================================================
 
+if uploaded_file is not None:
     st.markdown(
         """
         <style>
