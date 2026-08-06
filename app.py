@@ -46,20 +46,6 @@ interactive visualizations.
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
 
-st.markdown("""
-<div style="
-background:rgba(255,255,255,0.08);
-padding:25px;
-border-radius:18px;
-border:1px solid rgba(255,255,255,0.15);
-backdrop-filter:blur(12px);
-">
-
-<h3 style="color:white;">Upload Dataset</h3>
-
-</div>
-""", unsafe_allow_html=True)
-
 uploaded_file = st.file_uploader(
     "Upload Hotel Booking CSV",
     type=["csv"]
