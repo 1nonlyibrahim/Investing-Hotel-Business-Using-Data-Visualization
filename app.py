@@ -56,7 +56,7 @@ if uploaded_file is not None:
     my_bar = progress_bar_container.progress(0)
 
     for percent_complete in range(100):
-        time.sleep(0.1)
+        time.sleep(0.05)
         current_val = percent_complete + 1
         progress_text.text(f"⏳ Uploading dataset... {current_val}%")
         my_bar.progress(current_val)
