@@ -64,4 +64,7 @@ if uploaded_file is not None:
     progress_text.empty()
     progress_bar_container.empty()
 
-    st.success("✅ Dataset uploaded successfully!")
+    success_container = st.empty()
+    success_container.success("✅ Dataset uploaded successfully!")
+    time.sleep(2)
+    success_container.empty()
