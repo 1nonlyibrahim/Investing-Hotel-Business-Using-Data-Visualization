@@ -116,7 +116,7 @@ if uploaded_file is not None:
         """,
         unsafe_allow_html=True
     )
-    time.sleep(2)
+    time.sleep(1.5)
     success_message.empty()
 
     st.divider()
