@@ -81,10 +81,12 @@ if uploaded_file is not None:
         <style>
         .stProgress > div > div > div {
             background-color: #ff4d4d !important;
-            box-shadow: 0 0 18px rgba(255, 77, 77, 0.85) !important;
+            box-shadow: 0 0 18px rgba(255, 77, 77, 0.85), 0 0 28px rgba(255, 77, 77, 0.55) !important;
+            filter: drop-shadow(0 0 14px rgba(255, 77, 77, 0.75));
         }
         .stProgress > div > div {
             background-color: rgba(255, 77, 77, 0.15) !important;
+            box-shadow: inset 0 0 12px rgba(255, 77, 77, 0.25);
         }
         </style>
         """,
@@ -116,7 +118,44 @@ if uploaded_file is not None:
         """,
         unsafe_allow_html=True
     )
-    time.sleep(1.5)
+    time.sleep(1.2)
     success_message.empty()
 
     st.divider()
+
+#====================================================================================
+#  DATASET PREPORCESSING
+#====================================================================================
+
+    st.markdown(
+        """
+        <style>
+        /* Style only buttons in this container to have red background and contrasting text */
+        .stButton>button {
+            background: linear-gradient(90deg,#ff4d4d,#d32f2f) !important;
+            color: #fff !important;
+            font-weight: 700 !important;
+            padding: 10px 18px !important;
+            border-radius: 8px !important;
+            box-shadow: 0 6px 18px rgba(255,77,77,0.45) !important;
+            border: 1px solid rgba(255,255,255,0.12) !important;
+        }
+        .stButton>button:hover {
+            transform: translateY(-1px);
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.button("Click to validate and prepare dataset"):
+        # Simple example validation/preparation steps
+        with st.spinner("Validating and preparing dataset..."):
+            # basic validation: ensure dataframe exists and has rows
+            if df is None or df.empty:
+                st.error("Dataset is empty or not loaded.")
+            else:
+                # example preparation: drop fully empty rows and reset index
+                df.dropna(how="all", inplace=True)
+                df.reset_index(drop=True, inplace=True)
+                st.success("Dataset validated and prepared.")
