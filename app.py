@@ -39,7 +39,7 @@ def set_background_image(image_path):
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-set_background_image("streamlitbg.jfif")
+set_background_image("Download Redot Engine.jfif")
 
 #====================================================================================
 # HEADER SECTION
