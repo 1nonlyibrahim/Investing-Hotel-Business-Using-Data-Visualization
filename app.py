@@ -26,6 +26,26 @@ st.set_page_config(
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
 
+def set_background_image(image_path):
+    """Load and set a local image as the background"""
+    with open(image_path, "rb") as image_file:
+        import base64
+        image_data = base64.b64encode(image_file.read()).decode()
+    
+    page_bg_img = f"""
+    <style>
+    [data-testid="stAppViewContainer"] {{
+        background-image: url("data:image/png;base64,{image_data}");
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        background-attachment: fixed;
+    }}
+    </style>
+    """
+    st.markdown(page_bg_img, unsafe_allow_html=True)
+
+set_background_image("C:\\Users\\admin\\Desktop\\apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
 
 #====================================================================================
 # HEADER SECTION
