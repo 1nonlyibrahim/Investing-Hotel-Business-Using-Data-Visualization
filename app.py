@@ -53,7 +53,7 @@ st.markdown(
 #====================================================================================
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
-
+st.divider()
 st.markdown(
     """
     <style>
@@ -67,7 +67,7 @@ st.markdown(
     """,
     unsafe_allow_html=True,
 )
-st.divider()
+
 uploaded_file = st.file_uploader(
     "Upload your CSV dataset to begin with the Analysis",
     type=["csv"]
