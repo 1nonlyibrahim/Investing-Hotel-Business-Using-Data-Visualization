@@ -33,12 +33,9 @@ st.set_page_config(
 st.title("Hotel Booking Analytics Dashboard")
 
 st.markdown("""
-### Business Intelligence Platform
-
 Analyze hotel booking behavior, cancellation trends,
 customer insights, and revenue performance through
 interactive visualizations.
-
 ---
 """)
 
