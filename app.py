@@ -39,7 +39,7 @@ def set_background_image(image_path):
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-set_background_image("Download Redot Engine.jfif")
+set_background_image("Abstract red to black gradient background with grainy noise texture for digital design projects.jfif")
 
 #====================================================================================
 # HEADER SECTION
