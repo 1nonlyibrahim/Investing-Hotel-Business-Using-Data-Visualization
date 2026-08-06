@@ -76,6 +76,20 @@ if uploaded_file is not None:
     progress_text = st.empty()
     progress_bar_container = st.empty()
 
+    st.markdown(
+        """
+        <style>
+        .stProgress > div > div > div {
+            background-color: #ff4d4d !important;
+            box-shadow: 0 0 18px rgba(255, 77, 77, 0.85) !important;
+        }
+        .stProgress > div > div {
+            background-color: rgba(255, 77, 77, 0.15) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
     my_bar = progress_bar_container.progress(0)
 
@@ -102,7 +116,7 @@ if uploaded_file is not None:
         """,
         unsafe_allow_html=True
     )
-    time.sleep(3)
+    time.sleep(2.5)
     success_message.empty()
 
     st.divider()
