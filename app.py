@@ -79,7 +79,7 @@ st.markdown(
 )
 
 uploaded_file = st.file_uploader(
-    "Upload your CSV dataset to begin with the Analysis",
+    "Click below to upload your CSV Dataset",
     type=["csv"]
 )
 
