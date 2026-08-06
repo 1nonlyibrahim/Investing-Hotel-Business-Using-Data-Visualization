@@ -50,7 +50,10 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
     progress_text = st.empty()
-    my_bar = st.progress(0)
+    progress_bar_container = st.empty()
+
+
+    my_bar = progress_bar_container.progress(0)
 
     for percent_complete in range(100):
         time.sleep(0.01)
@@ -59,4 +62,6 @@ if uploaded_file is not None:
         my_bar.progress(current_val)
 
     progress_text.empty()
+    progress_bar_container.empty()
+
     st.success("✅ Dataset uploaded successfully!")
