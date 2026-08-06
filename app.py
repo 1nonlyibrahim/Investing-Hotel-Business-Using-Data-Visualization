@@ -53,20 +53,6 @@ st.markdown(
 #====================================================================================
 # FUNCTIONS TO LOAD THE BACKGROUND IMAGE
 #====================================================================================
-st.divider()
-st.markdown(
-    """
-    <style>
-    div[data-testid="stDivider"] > hr {
-        border-top: 1px solid white;
-    }
-    div[data-testid="stFileUploader"] > label {
-        color: white;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
 
 uploaded_file = st.file_uploader(
     "Upload your CSV dataset to begin with the Analysis",
@@ -85,15 +71,25 @@ if uploaded_file is not None:
     for percent_complete in range(100):
         time.sleep(0.05)
         current_val = percent_complete + 1
-        progress_text.text(f"⏳ Uploading dataset... {current_val}%")
+        progress_text.markdown(
+            f"<span style='color: white;'>⏳ Uploading dataset... {current_val}%</span>",
+            unsafe_allow_html=True,
+        )
         my_bar.progress(current_val)
 
     progress_text.empty()
     progress_bar_container.empty()
 
-    success_container = st.empty()
-    success_container.success("✅ Dataset uploaded successfully!")
+    st.markdown(
+        """
+        <div style='position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
+        background-color: rgba(0, 0, 0, 0.8); padding: 15px 30px; border-radius: 8px; 
+        z-index: 9999; text-align: center;'>
+        <span style='color: #00ff00; font-size: 16px; font-weight: bold;'>✅ Dataset uploaded successfully!</span>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
     time.sleep(2)
-    success_container.empty()
 
     st.divider()
