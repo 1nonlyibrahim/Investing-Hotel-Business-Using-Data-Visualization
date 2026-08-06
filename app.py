@@ -141,10 +141,41 @@ if uploaded_file is not None:
 #====================================================================================
 
 if uploaded_file is not None:
+    st.markdown(
+        """
+        <style>
+        .glowing-button {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        .glowing-button button {
+            background: linear-gradient(135deg, #ff4d4d 0%, #ff0000 100%) !important;
+            color: white !important;
+            font-weight: bold !important;
+            font-size: 16px !important;
+            padding: 12px 40px !important;
+            border: 2px solid #ff4d4d !important;
+            border-radius: 8px !important;
+            box-shadow: 0 0 20px rgba(255, 77, 77, 0.8), 0 0 40px rgba(255, 0, 0, 0.6) !important;
+            cursor: pointer !important;
+            transition: all 0.3s ease !important;
+        }
+        .glowing-button button:hover {
+            box-shadow: 0 0 30px rgba(255, 77, 77, 1), 0 0 60px rgba(255, 0, 0, 0.8) !important;
+            transform: scale(1.05) !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+    
     cols = st.columns([1, 2, 1])
     with cols[1]:
-        if st.button("Open window", key="open_window"):
+        st.markdown("<div class='glowing-button'>", unsafe_allow_html=True)
+        if st.button("🚀 Proceed with Data Preparation", key="open_window", use_container_width=True):
             st.session_state.show_popup = True
+        st.markdown("</div>", unsafe_allow_html=True)
     
     if st.session_state.get("show_popup", False):
         with st.container():
@@ -154,8 +185,8 @@ if uploaded_file is not None:
                     """
                     <div style='background-color: white; padding: 30px; border-radius: 10px; 
                     box-shadow: 0 4px 20px rgba(0,0,0,0.3); text-align: center;'>
-                    <h3 style='color: #333;'>Popup Window</h3>
-                    <p style='color: #666;'>This is your popup window content.</p>
+                    <h3 style='color: #333;'>Data Preparation</h3>
+                    <p style='color: #666;'>Your dataset is ready for processing and analysis.</p>
                     </div>
                     """,
                     unsafe_allow_html=True,
