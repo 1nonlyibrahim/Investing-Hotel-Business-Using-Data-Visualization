@@ -4,6 +4,7 @@
 
 import streamlit as st
 import pandas as pd
+import time
 #import numpy as np
 #import plotly.express as px
 #import plotly.graph_objects as go
@@ -48,4 +49,14 @@ uploaded_file = st.file_uploader(
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
 
+    progress_text = st.empty()
+    my_bar = st.progress(0)
+
+    for percent_complete in range(100):
+        time.sleep(0.01)
+        current_val = percent_complete + 1
+        progress_text.text(f"⏳ Uploading dataset... {current_val}%")
+        my_bar.progress(current_val)
+
+    progress_text.empty()
     st.success("✅ Dataset uploaded successfully!")
