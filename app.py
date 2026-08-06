@@ -57,8 +57,21 @@ st.markdown(
 st.markdown(
     """
     <style>
-    div[data-testid="stFileUploader"] label {
-        color: white !important;
+    /* Translucent red uploader box with white text */
+    div[data-testid="stFileUploader"] {
+        background: rgba(255, 77, 77, 0.20) !important; /* translucent red */
+        color: #ffffff !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        border: 1px solid rgba(255,77,77,0.35) !important;
+        box-shadow: 0 6px 18px rgba(255,77,77,0.08) !important;
+    }
+    div[data-testid="stFileUploader"] label,
+    div[data-testid="stFileUploader"] .stMarkdown { 
+        color: #ffffff !important;
+    }
+    div[data-testid="stFileUploader"] input[type="file"] {
+        color: #ffffff !important;
     }
     </style>
     """,
@@ -147,7 +160,18 @@ if uploaded_file is not None:
         .center-button {
             display: flex;
             justify-content: center;
+            align-items: center;
             margin-bottom: 20px;
+            width: 100%;
+        }
+        /* Ensure Streamlit's button is centered inside the custom container */
+        .center-button > div {
+            display: flex !important;
+            justify-content: center !important;
+            width: auto !important;
+        }
+        .center-button .stButton>button {
+            margin: 0 auto !important;
         }
         </style>
         """,
