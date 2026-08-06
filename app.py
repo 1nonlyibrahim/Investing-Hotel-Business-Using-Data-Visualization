@@ -68,3 +68,5 @@ if uploaded_file is not None:
     success_container.success("✅ Dataset uploaded successfully!")
     time.sleep(2)
     success_container.empty()
+
+    st.divider()
