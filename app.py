@@ -5,12 +5,12 @@
 import streamlit as st
 import pandas as pd
 import time
-#import numpy as np
-#import plotly.express as px
-#import plotly.graph_objects as go
-#from PIL import Image
-#import base64
-#import os
+import numpy as np
+import plotly.express as px
+import plotly.graph_objects as go
+from PIL import Image
+import base64
+import os
 
 #====================================================================================
 # STREAMLIT PAGE CONFIGURE
@@ -29,7 +29,6 @@ st.set_page_config(
 def set_background_image(image_path):
     """Load and set a local image as the background"""
     with open(image_path, "rb") as image_file:
-        import base64
         image_data = base64.b64encode(image_file.read()).decode()
     
     page_bg_img = f"""
@@ -45,7 +44,7 @@ def set_background_image(image_path):
     """
     st.markdown(page_bg_img, unsafe_allow_html=True)
 
-set_background_image("C:\\Users\\admin\\Desktop\\apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
+set_background_image("apphotelbackground.jpg_semt=ais_hybrid&w=740&q=80")
 
 #====================================================================================
 # HEADER SECTION
