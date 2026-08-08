@@ -2210,7 +2210,7 @@ cleaning_stats = {
 
     "original_rows": len(original_df) if original_df is not None else 0,
 
-    "final_rows": len(df) if df is not None else 0,
+    "final_rows": len(prepared_df) if prepared_df is not None else 0,
 
     "duplicates_removed": duplicates_removed,
 
