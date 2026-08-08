@@ -5,11 +5,10 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import plotly.express as px
-import plotly.graph_objects as go
 import hashlib
 import time
 import base64
+import plotly.express as px
 
 #====================================================================================
 # STREAMLIT PAGE CONFIGURE
