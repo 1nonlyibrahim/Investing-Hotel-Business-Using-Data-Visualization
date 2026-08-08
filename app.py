@@ -677,3 +677,5 @@ if st.session_state.get("show_processing") and st.session_state.get("prep_popup_
         st.session_state["show_processing"] = False
         st.session_state["prep_popup_visible"] = False
         st.session_state["prep_popup_status"] = "running"
+
+    show_notification("✅ Preparation successful. You can proceed with the analysis.")
