@@ -1145,7 +1145,6 @@ def render_sidebar(
         """, unsafe_allow_html=True)
 
         pages = [
-            "🏠 Home",
             "📋 Dataset Overview",
             "🧹 Data Preparation",
 
@@ -2742,12 +2741,9 @@ def render_market_channel_analysis(df):
 
 filtered_df = prepared_df
 
-if selected_page == "🏠 Home":
-
-    render_home()
 
 
-elif selected_page == "📋 Dataset Overview":
+if selected_page == "📋 Dataset Overview":
 
     render_dataset_overview(df)
 
