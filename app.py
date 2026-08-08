@@ -686,5 +686,3 @@ if st.session_state.get("show_processing") and st.session_state.get("prep_popup_
         st.session_state["prep_popup_current_step_name"] = None
         st.session_state["prep_popup_title"] = "Preparing your dataset"
         st.session_state["prep_popup_total_steps"] = 5
-        show_notification("✅ Preparation successful. You can proceed with the analysis.")
-        st.rerun()
