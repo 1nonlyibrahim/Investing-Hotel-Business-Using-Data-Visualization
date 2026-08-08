@@ -169,6 +169,13 @@ uploaded_file = st.file_uploader(
 )
 
 if uploaded_file is not None:
+    previous_uploaded_file = st.session_state.get("uploaded_file")
+    previous_file_name = getattr(previous_uploaded_file, "name", None)
+    current_file_name = getattr(uploaded_file, "name", None)
+
+    if previous_file_name != current_file_name:
+        st.session_state["data_prepared"] = False
+
     st.session_state["uploaded_file"] = uploaded_file
     show_notification("📄 Dataset selected. Click the button to begin preparation.")
 
