@@ -718,6 +718,12 @@ def render_filter_box(df):
        ================================ */
 
     .filter-box {
+        display: block !important;
+        visibility: visible !important;
+        opacity: 1 !important;
+        overflow: visible !important;
+        position: relative !important;
+        z-index: 1 !important;
         background: rgba(20, 20, 20, 0.92);
         border: 1px solid rgba(255, 255, 255, 0.12);
         border-radius: 14px;
