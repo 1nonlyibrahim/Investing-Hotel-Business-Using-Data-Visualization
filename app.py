@@ -2173,10 +2173,12 @@ def render_hotel_performance(df):
     st.dataframe(hotel_summary, use_container_width=True)
 
 
-# Derive preparation statistics when they were not explicitly provided.
+# Derive preparation statistics when they were not explicitly provided
 original_df = globals().get("original_df", None)
-if original_df is None and df is not None:
-    original_df = df.copy()
+prepared_df = globals().get("prepared_df", None)
+
+if original_df is None and prepared_df is not None:
+    original_df = prepared_df.copy()
 
 duplicates_removed = (
     int(original_df.duplicated().sum())
