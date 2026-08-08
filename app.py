@@ -197,6 +197,8 @@ def show_notification(message, duration=3):
         unsafe_allow_html=True
     )
 
+#====================================================================================
+
 def set_background_image(image_path):
     """Load and set a local image as the background"""
     with open(image_path, "rb") as image_file:
@@ -205,11 +207,29 @@ def set_background_image(image_path):
     page_bg_img = f"""
     <style>
     [data-testid="stAppViewContainer"] {{
+        position: relative;
+        isolation: isolate;
+        background: transparent;
+    }}
+
+    [data-testid="stAppViewContainer"]::before {{
+        content: "";
+        position: fixed;
+        inset: 0;
         background-image: url("data:image/png;base64,{image_data}");
         background-size: cover;
         background-position: center;
         background-repeat: no-repeat;
         background-attachment: fixed;
+        filter: blur(8px);
+        transform: scale(1.05);
+        z-index: -1;
+        pointer-events: none;
+    }}
+
+    [data-testid="stAppViewContainer"] > * {{
+        position: relative;
+        z-index: 1;
     }}
     </style>
     """
@@ -228,7 +248,7 @@ st.markdown(
 )
 
 #====================================================================================
-# FUNCTIONS TO LOAD THE BACKGROUND IMAGE
+# UPLOADER BOX
 #====================================================================================
 
 st.markdown(
