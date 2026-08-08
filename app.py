@@ -4,11 +4,18 @@
 
 import pandas as pd
 import numpy as np
-import plotly.express as px
 import hashlib
 import streamlit as st
 import time
 import base64
+import subprocess
+import sys
+
+try:
+    import plotly.express as px
+except ModuleNotFoundError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "plotly"])
+    import plotly.express as px
 
 #====================================================================================
 # STREAMLIT PAGE CONFIGURE
