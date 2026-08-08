@@ -2174,6 +2174,10 @@ def render_hotel_performance(df):
 
 
 # Derive preparation statistics when they were not explicitly provided.
+original_df = globals().get("original_df", None)
+if original_df is None and df is not None:
+    original_df = df.copy()
+
 duplicates_removed = (
     int(original_df.duplicated().sum())
     if original_df is not None
@@ -2202,9 +2206,9 @@ dtypes_fixed = (
 
 cleaning_stats = {
 
-    "original_rows": len(original_df),
+    "original_rows": len(original_df) if original_df is not None else 0,
 
-    "final_rows": len(df),
+    "final_rows": len(df) if df is not None else 0,
 
     "duplicates_removed": duplicates_removed,
 
