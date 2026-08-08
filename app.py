@@ -7,6 +7,7 @@ import pandas as pd
 import numpy as np
 import time
 import base64
+from pathlib import Path
 
 #====================================================================================
 # STREAMLIT PAGE CONFIGURE
@@ -144,12 +145,6 @@ if uploaded_file is not None:
 #  DATASET PREPORCESSING
 #====================================================================================
 
-
-
-# ------------------------------------------------------------
-# REQUIRED COLUMNS
-# ------------------------------------------------------------
-
 REQUIRED_COLUMNS = [
     "hotel",
     "is_canceled",
@@ -270,7 +265,39 @@ if uploaded_file is not None:
         # READ DATA
         # ----------------------------------------------------
 
-        df = pd.read_csv(uploaded_file)
+        try:
+            uploaded_file.seek(0)
+
+            df = pd.read_csv(
+                uploaded_file,
+                encoding="utf-8",
+                encoding_errors="replace",
+                low_memory=False
+            )
+
+        except Exception:
+
+            try:
+                uploaded_file.seek(0)
+
+                df = pd.read_csv(
+                    uploaded_file,
+                    encoding="latin-1",
+                    low_memory=False
+                )
+
+            except Exception as e:
+
+                st.error("❌ Could not read the uploaded CSV file.")
+
+                st.code(str(e))
+
+                st.info(
+                    "Please make sure the uploaded file is a valid CSV "
+                    "and uses the expected Hotel Booking dataset format."
+                )
+
+                st.stop()
 
         # Store original dataset
         original_df = df.copy()
