@@ -2753,7 +2753,7 @@ def render_market_channel_analysis(df):
         st.info("No market or channel columns are available in the dataset.")
 
 
-filtered_df = df
+filtered_df = prepared_df
 
 if selected_page == "🏠 Home":
 
