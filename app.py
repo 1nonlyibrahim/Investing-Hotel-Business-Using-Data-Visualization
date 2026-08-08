@@ -29,171 +29,59 @@ def show_notification(message, duration=3):
     st.markdown(
         f"""
         <style>
-
         .custom-notification {{
-
             position: fixed;
-
             top: 75px;
             left: 50%;
-
             transform: translateX(-50%);
-
             z-index: 999999;
-
             min-width: 380px;
             max-width: 650px;
-
             padding: 15px 24px;
-
-            /* Dark green background */
             background: rgba(5, 35, 20, 0.97);
-
-            /* Green border */
             border: 1px solid #20ff8a;
-
             border-radius: 12px;
-
-            /* Green glow around entire box */
-            box-shadow:
-                0 0 5px rgba(32, 255, 138, 0.8),
-                0 0 15px rgba(32, 255, 138, 0.6),
-                0 0 30px rgba(32, 255, 138, 0.4),
-                inset 0 0 15px rgba(32, 255, 138, 0.08);
-
-            display: flex;
-
-            align-items: center;
-
-            gap: 13px;
-
             color: #20ff8a;
-
             font-size: 15px;
-
             font-weight: 600;
-
             letter-spacing: 0.2px;
-
-            /* Entry + exit animation */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
             animation:
                 notification-slide-down 0.5s ease-out forwards,
                 notification-slide-up 0.5s ease-in {duration}s forwards;
-
             pointer-events: none;
         }}
 
-
-        /* Icon */
-
-        .notification-icon {{
-
-            width: 27px;
-            height: 27px;
-
-            min-width: 27px;
-
-            border-radius: 50%;
-
-            background: rgba(32, 255, 138, 0.12);
-
-            border: 1px solid #20ff8a;
-
-            color: #20ff8a;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            font-size: 15px;
-
-            font-weight: bold;
-
-            box-shadow:
-                0 0 8px rgba(32, 255, 138, 0.7);
-
-        }}
-
-
-        /* Message */
-
-        .notification-message {{
-
-            color: #20ff8a;
-
-            text-shadow:
-                0 0 6px rgba(32, 255, 138, 0.5);
-
-        }}
-
-
-        /* Slide DOWN */
-
         @keyframes notification-slide-down {{
-
             0% {{
                 opacity: 0;
-
-                transform:
-                    translate(-50%, -45px);
-
-                filter: blur(4px);
+                transform: translate(-50%, -12px);
             }}
-
             100% {{
                 opacity: 1;
-
-                transform:
-                    translate(-50%, 0);
-
-                filter: blur(0);
+                transform: translate(-50%, 0);
             }}
-
         }}
-
-
-        /* Slide UP */
 
         @keyframes notification-slide-up {{
-
             0% {{
                 opacity: 1;
-
-                transform:
-                    translate(-50%, 0);
-
-                filter: blur(0);
+                transform: translate(-50%, 0);
             }}
-
             100% {{
                 opacity: 0;
-
-                transform:
-                    translate(-50%, -45px);
-
-                filter: blur(4px);
+                transform: translate(-50%, -12px);
             }}
-
         }}
-
         </style>
 
-
         <div class="custom-notification">
-
-            <div class="notification-icon">
-                ✓
-            </div>
-
-            <div class="notification-message">
-                {message}
-            </div>
-
+            {message}
         </div>
         """,
-
         unsafe_allow_html=True
     )
 
