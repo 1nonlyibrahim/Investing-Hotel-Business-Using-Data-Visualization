@@ -845,19 +845,6 @@ def render_dataset_overview(df):
     st.dataframe(df.head(10), use_container_width=True)
 
 
-def render_home():
-    """Render the landing/home page for the dashboard."""
-    st.header("🏠 Home")
-    st.markdown(
-        "Welcome to the Hotel Booking Analytics Dashboard. Upload a CSV dataset, prepare it, and use the sidebar to explore the available analysis views."
-    )
-
-    if st.session_state.get("cleaned_df") is not None:
-        st.success("A prepared dataset is available and ready for analysis.")
-    else:
-        st.info("No prepared dataset is available yet. Upload a CSV file and run data preparation to get started.")
-
-
 def render_global_filters(df):
     """Apply simple global filters for the dashboard."""
     if df is None or df.empty:
