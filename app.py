@@ -713,6 +713,8 @@ def prepare_dataset(df):
     else:
         prepared_df = df.copy()
 
+        st.session_state["prepared_df"] = prepared_df
+
         if prepared_df.empty:
             return prepared_df
 
@@ -812,10 +814,16 @@ def render_data_preparation(df, original_df=None, cleaning_stats=None):
 
 def render_dataset_overview(df):
     """Render a dataset overview page for the current dataset."""
-    if df is None or df.empty:
-        st.info("No dataset available for the dataset overview.")
-        return
+    prepared_df = st.session_state.get("prepared_df")
 
+    if df is None or df.empty:
+        if prepared_df is not None and not prepared_df.empty:
+            df = prepared_df
+        else:
+            st.info("No dataset available for the dataset overview.")
+            return
+
+    st.title("📋 Dataset Overview")
     st.header("📋 Dataset Overview")
     st.markdown("Review the structure, quality and contents of the uploaded dataset.")
 
