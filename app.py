@@ -170,7 +170,7 @@ uploaded_file = st.file_uploader(
 
 if uploaded_file is not None:
     st.session_state["uploaded_file"] = uploaded_file
-    show_notification("📄 Dataset selected. Click below to begin preparation.")
+    show_notification("📄 Dataset selected. Click the button to begin preparation.")
 
 #====================================================================================
 #  DATASET PREPORCESSING
