@@ -132,6 +132,16 @@ def show_notification(message, duration=3):
         unsafe_allow_html=True
     )
 
+if "pending_notification" not in st.session_state:
+    st.session_state["pending_notification"] = None
+
+if st.session_state.get("pending_notification"):
+    notification_message = st.session_state["pending_notification"]
+
+    st.session_state["pending_notification"] = None
+
+    show_notification(notification_message)
+
 #====================================================================================
 
 def get_uploaded_file_id(uploaded_file):
@@ -644,7 +654,6 @@ if should_show_proceed:
 
                     render_preparation_popup(4, 5, "success", "Prepared successfully — now proceeding to analysis.", current_step_name="Finalize dataset")
                     time.sleep(1.2)
-                    show_notification("✅ Preparation successful. You can proceed with the analysis.")
                     st.session_state["show_processing"] = False
                     st.session_state["prep_popup_visible"] = False
                     st.session_state["prep_popup_status"] = "running"
@@ -686,3 +695,8 @@ if st.session_state.get("show_processing") and st.session_state.get("prep_popup_
         st.session_state["prep_popup_current_step_name"] = None
         st.session_state["prep_popup_title"] = "Preparing your dataset"
         st.session_state["prep_popup_total_steps"] = 5
+        st.session_state["pending_notification"] = (
+            "✅ Preparation successful. You can proceed with the analysis."
+        )
+
+        st.rerun()
