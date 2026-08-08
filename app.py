@@ -651,6 +651,8 @@ if should_show_proceed:
                     st.session_state["prep_popup_detail"] = ""
                     st.session_state["prep_popup_step_index"] = 0
                     st.session_state["prep_popup_current_step_name"] = None
+                    st.session_state["prep_popup_title"] = "Preparing your dataset"
+                    st.session_state["prep_popup_total_steps"] = 5
                     st.rerun()
             except Exception as e:
                 render_preparation_popup(4, 5, "error", f"Preparation failed: {str(e)}", current_step_name="Finalize dataset")
@@ -666,6 +668,8 @@ if should_show_proceed:
                 st.session_state["prep_popup_detail"] = ""
                 st.session_state["prep_popup_step_index"] = 0
                 st.session_state["prep_popup_current_step_name"] = None
+                st.session_state["prep_popup_title"] = "Preparing your dataset"
+                st.session_state["prep_popup_total_steps"] = 5
                 st.rerun()
 
 if st.session_state.get("show_processing") and st.session_state.get("prep_popup_visible") and st.session_state.get("prep_popup_status") in {"success", "error"}:
@@ -677,4 +681,10 @@ if st.session_state.get("show_processing") and st.session_state.get("prep_popup_
         st.session_state["show_processing"] = False
         st.session_state["prep_popup_visible"] = False
         st.session_state["prep_popup_status"] = "running"
+        st.session_state["prep_popup_detail"] = ""
+        st.session_state["prep_popup_step_index"] = 0
+        st.session_state["prep_popup_current_step_name"] = None
+        st.session_state["prep_popup_title"] = "Preparing your dataset"
+        st.session_state["prep_popup_total_steps"] = 5
         show_notification("✅ Preparation successful. You can proceed with the analysis.")
+        st.rerun()
