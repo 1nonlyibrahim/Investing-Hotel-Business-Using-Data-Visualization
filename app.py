@@ -2745,7 +2745,7 @@ filtered_df = prepared_df
 
 if selected_page == "📋 Dataset Overview":
 
-    render_dataset_overview(df)
+    render_dataset_overview(filtered_df)
 
 
 elif selected_page == "🧹 Data Preparation":
