@@ -46,7 +46,7 @@ set_background_image("Abstract red to black gradient background with grainy nois
 # HEADER SECTION
 #====================================================================================
 
--st.markdown(
+st.markdown(
     "<h1 style='text-align: center; text-transform: uppercase; color: white; font-weight: 700; font-size: 64px;'>Hotel Booking Analytics Dashboard</h1>", 
     unsafe_allow_html=True
 )
