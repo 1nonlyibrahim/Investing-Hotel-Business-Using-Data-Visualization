@@ -450,36 +450,7 @@ if uploaded_file is not None:
             time.sleep(1.2)
             popup_placeholder.empty()
 
-            st.markdown("## ✅ Data Preparation Complete")
-            st.success("🎉 Your dataset has been prepared successfully and is ready for analysis.")
-
-            st.markdown("## 📊 Cleaning Summary")
-            summary_col1, summary_col2 = st.columns(2)
-
-            with summary_col1:
-                st.write(f"**Original Rows:** {original_rows:,}")
-                st.write(f"**Duplicate Rows Removed:** {duplicates_before:,}")
-                st.write(f"**Final Rows:** {final_rows:,}")
-
-            with summary_col2:
-                st.write(f"**Original Missing Values:** {total_missing_before:,}")
-                st.write(f"**Remaining Missing Values:** {remaining_missing:,}")
-                st.write(f"**Columns:** {original_columns}")
-
-            st.markdown("## ✅ Final Data Validation")
-            col1, col2, col3, col4 = st.columns(4)
-            col1.metric("Original Rows", f"{original_rows:,}")
-            col2.metric("Final Rows", f"{final_rows:,}")
-            col3.metric("Missing Values", f"{remaining_missing:,}")
-            col4.metric("Duplicate Rows", f"{remaining_duplicates:,}")
-
-            if remaining_missing == 0 and remaining_duplicates == 0:
-                st.success("🎉 Data preparation completed successfully!")
-            else:
-                st.warning("⚠️ Some data quality issues still remain.")
-
-            with st.expander("👀 Preview Cleaned Dataset"):
-                st.dataframe(df.head(100), use_container_width=True)
+            st.success("✅ Preparation successful. You can proceed with the analysis.")
 
         except Exception as e:
             render_preparation_popup(4, 5, "error", f"Preparation failed: {str(e)}", current_step_name="Finalize dataset")
