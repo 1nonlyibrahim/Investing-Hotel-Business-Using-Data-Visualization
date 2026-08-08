@@ -700,3 +700,363 @@ if st.session_state.get("show_processing") and st.session_state.get("prep_popup_
         )
 
         st.rerun()
+
+#====================================================================================
+# SIDEBAR SECTION
+#====================================================================================
+
+
+#====================================================================================
+# FILTER SECTION
+#====================================================================================
+
+def render_filter_box(df):
+    st.markdown("""
+    <style>
+    /* ================================
+       FILTER BOX
+       ================================ */
+
+    .filter-box {
+        background: rgba(20, 20, 20, 0.92);
+        border: 1px solid rgba(255, 255, 255, 0.12);
+        border-radius: 14px;
+        padding: 22px 24px 20px 24px;
+        margin: 15px 0 25px 0;
+        box-shadow:
+            0 8px 30px rgba(0, 0, 0, 0.35),
+            inset 0 0 20px rgba(255, 255, 255, 0.02);
+    }
+
+    .filter-title {
+        color: white;
+        font-size: 20px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+
+    .filter-subtitle {
+        color: #a8a8a8;
+        font-size: 13px;
+        margin-bottom: 18px;
+    }
+
+    /* ================================
+       FILTER BUTTON
+       ================================ */
+
+    .filter-button-container {
+        display: flex;
+        justify-content: flex-start;
+        margin-top: 18px;
+    }
+
+    .filter-button-container button {
+        background-color: #ff0000 !important;
+        color: white !important;
+        font-weight: bold !important;
+        font-size: 15px !important;
+        padding: 10px 28px !important;
+        border: 2px solid #ff0000 !important;
+        border-radius: 8px !important;
+        box-shadow: none !important;
+        cursor: pointer !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .filter-button-container button:hover {
+        background-color: #ff0000 !important;
+        color: white !important;
+        box-shadow:
+            0 0 15px rgba(255, 0, 0, 0.8),
+            0 0 30px rgba(255, 0, 0, 0.6),
+            0 0 45px rgba(255, 0, 0, 0.35) !important;
+        transform: translateY(-1px) !important;
+    }
+
+    /* ================================
+       RESET BUTTON
+       ================================ */
+
+    .reset-button-container {
+        display: flex;
+        justify-content: flex-start;
+        margin-top: 8px;
+    }
+
+    .reset-button-container button {
+        background-color: transparent !important;
+        color: #bbbbbb !important;
+        border: 1px solid #555555 !important;
+        border-radius: 8px !important;
+        font-size: 13px !important;
+        transition: all 0.3s ease !important;
+    }
+
+    .reset-button-container button:hover {
+        color: white !important;
+        border-color: #888888 !important;
+    }
+    </style>
+    """, unsafe_allow_html=True)
+
+    # Filter box
+    st.markdown("""
+    <div class="filter-box">
+        <div class="filter-title">🎛️ Filter Data</div>
+        <div class="filter-subtitle">
+            Select filters to customize the analysis and visualizations.
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ------------------------------------------------
+    # FILTER ROW 1
+    # ------------------------------------------------
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        hotel_options = ["All Hotels"] + sorted(
+            df["hotel"].dropna().unique().tolist()
+        )
+
+        selected_hotel = st.selectbox(
+            "🏨 Hotel",
+            hotel_options,
+            key="filter_hotel"
+        )
+
+    with col2:
+        year_options = ["All Years"] + sorted(
+            df["arrival_date_year"].dropna().unique().tolist()
+        )
+
+        selected_year = st.selectbox(
+            "📅 Arrival Year",
+            year_options,
+            key="filter_year"
+        )
+
+    with col3:
+        month_order = [
+            "January", "February", "March", "April",
+            "May", "June", "July", "August",
+            "September", "October", "November", "December"
+        ]
+
+        available_months = [
+            month for month in month_order
+            if month in df["arrival_date_month"].dropna().unique()
+        ]
+
+        month_options = ["All Months"] + available_months
+
+        selected_month = st.selectbox(
+            "📆 Arrival Month",
+            month_options,
+            key="filter_month"
+        )
+
+    # ------------------------------------------------
+    # FILTER ROW 2
+    # ------------------------------------------------
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        customer_options = ["All Customer Types"] + sorted(
+            df["customer_type"].dropna().unique().tolist()
+        )
+
+        selected_customer = st.selectbox(
+            "👥 Customer Type",
+            customer_options,
+            key="filter_customer"
+        )
+
+    with col2:
+        market_options = ["All Market Segments"] + sorted(
+            df["market_segment"].dropna().unique().tolist()
+        )
+
+        selected_market = st.selectbox(
+            "📢 Market Segment",
+            market_options,
+            key="filter_market"
+        )
+
+    with col3:
+        channel_options = ["All Channels"] + sorted(
+            df["distribution_channel"].dropna().unique().tolist()
+        )
+
+        selected_channel = st.selectbox(
+            "📡 Distribution Channel",
+            channel_options,
+            key="filter_channel"
+        )
+
+    # ------------------------------------------------
+    # FILTER ROW 3
+    # ------------------------------------------------
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        deposit_options = ["All Deposit Types"] + sorted(
+            df["deposit_type"].dropna().unique().tolist()
+        )
+
+        selected_deposit = st.selectbox(
+            "💳 Deposit Type",
+            deposit_options,
+            key="filter_deposit"
+        )
+
+    with col2:
+        cancellation_options = [
+            "All Bookings",
+            "Confirmed Only",
+            "Cancelled Only"
+        ]
+
+        selected_cancellation = st.selectbox(
+            "❌ Cancellation Status",
+            cancellation_options,
+            key="filter_cancellation"
+        )
+
+    with col3:
+        repeat_options = [
+            "All Guests",
+            "New Guests",
+            "Repeat Guests"
+        ]
+
+        selected_repeat = st.selectbox(
+            "🔁 Guest Type",
+            repeat_options,
+            key="filter_repeat"
+        )
+
+    # ------------------------------------------------
+    # APPLY FILTERS BUTTON
+    # ------------------------------------------------
+
+    st.markdown(
+        '<div class="filter-button-container">',
+        unsafe_allow_html=True
+    )
+
+    apply_filters = st.button(
+        "🔎 Apply Filters",
+        key="apply_filters",
+        use_container_width=False
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ------------------------------------------------
+    # RESET BUTTON
+    # ------------------------------------------------
+
+    st.markdown(
+        '<div class="reset-button-container">',
+        unsafe_allow_html=True
+    )
+
+    reset_filters = st.button(
+        "↻ Reset Filters",
+        key="reset_filters"
+    )
+
+    st.markdown("</div>", unsafe_allow_html=True)
+
+    # ------------------------------------------------
+    # CREATE FILTERED DATAFRAME
+    # ------------------------------------------------
+
+    filtered_df = df.copy()
+
+    if apply_filters:
+
+        if selected_hotel != "All Hotels":
+            filtered_df = filtered_df[
+                filtered_df["hotel"] == selected_hotel
+            ]
+
+        if selected_year != "All Years":
+            filtered_df = filtered_df[
+                filtered_df["arrival_date_year"] == selected_year
+            ]
+
+        if selected_month != "All Months":
+            filtered_df = filtered_df[
+                filtered_df["arrival_date_month"] == selected_month
+            ]
+
+        if selected_customer != "All Customer Types":
+            filtered_df = filtered_df[
+                filtered_df["customer_type"] == selected_customer
+            ]
+
+        if selected_market != "All Market Segments":
+            filtered_df = filtered_df[
+                filtered_df["market_segment"] == selected_market
+            ]
+
+        if selected_channel != "All Channels":
+            filtered_df = filtered_df[
+                filtered_df["distribution_channel"] == selected_channel
+            ]
+
+        if selected_deposit != "All Deposit Types":
+            filtered_df = filtered_df[
+                filtered_df["deposit_type"] == selected_deposit
+            ]
+
+        if selected_cancellation == "Confirmed Only":
+            filtered_df = filtered_df[
+                filtered_df["is_canceled"] == 0
+            ]
+
+        elif selected_cancellation == "Cancelled Only":
+            filtered_df = filtered_df[
+                filtered_df["is_canceled"] == 1
+            ]
+
+        if selected_repeat == "New Guests":
+            filtered_df = filtered_df[
+                filtered_df["is_repeated_guest"] == 0
+            ]
+
+        elif selected_repeat == "Repeat Guests":
+            filtered_df = filtered_df[
+                filtered_df["is_repeated_guest"] == 1
+            ]
+
+    # ------------------------------------------------
+    # RESET
+    # ------------------------------------------------
+
+    if reset_filters:
+        st.session_state["filter_hotel"] = "All Hotels"
+        st.session_state["filter_year"] = "All Years"
+        st.session_state["filter_month"] = "All Months"
+        st.session_state["filter_customer"] = "All Customer Types"
+        st.session_state["filter_market"] = "All Market Segments"
+        st.session_state["filter_channel"] = "All Channels"
+        st.session_state["filter_deposit"] = "All Deposit Types"
+        st.session_state["filter_cancellation"] = "All Bookings"
+        st.session_state["filter_repeat"] = "All Guests"
+
+        st.rerun()
+
+    return filtered_df
+
+#====================================================================================
+# ANALYSIS SECTION
+#====================================================================================
+
+
