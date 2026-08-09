@@ -477,6 +477,7 @@ if uploaded_file is not None:
         try:
             uploaded_file.seek(0)
             df = pd.read_csv(uploaded_file)
+            st.write("INITIAL DATASET SHAPE:", df.shape)
         except Exception as e:
             st.session_state["preparation_running"] = False
             st.error(f"Unable to read the uploaded CSV file.\n\n{e}")
@@ -540,12 +541,10 @@ if uploaded_file is not None:
         for column in STRING_COLUMNS:
             if column in df.columns:
                 df[column] = df[column].astype("string")
-        df = df.dropna().copy()
 
         progress_bar.progress(100)
         time.sleep(0.8)
 
-        st.session_state["prepared_df"] = df
         st.session_state["preparation_stats"] = {
             "original_rows": len(original_df),
             "final_rows": len(df),
@@ -558,6 +557,7 @@ if uploaded_file is not None:
         }
         st.write("DEBUG — df before prepared_df:", df.shape)
         prepared_df = df.copy()
+        st.session_state["prepared_df"] = prepared_df
         st.write("DEBUG — prepared_df:", prepared_df.shape)
         render_prep_status(
             status_text,
