@@ -24,35 +24,32 @@ st.set_page_config(
 # ALL THE DEF FUNCTIONS ARE DEFINED HERE
 #=========================================================================================================================================================================================================
 def show_notification(message, duration=3):
-    """Displays a reusable animated dark-green notification near the top-center of the screen."""
-    st.markdown(f"""
-    <style>
-    .custom-notification{{position:fixed;top:75px;left:50%;transform:translateX(-50%);z-index:999999;min-width:380px;max-width:650px;padding:15px 24px;background:rgba(5,35,20,.97);border:1px solid #20ff8a;border-radius:12px;color:#20ff8a;font-size:15px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;justify-content:center;text-align:center;animation:notification-slide-down .5s ease-out forwards,notification-slide-up .5s ease-in {duration}s forwards;pointer-events:none}}
-    @keyframes notification-slide-down{{0%{{opacity:0;transform:translate(-50%,-12px)}}100%{{opacity:1;transform:translate(-50%,0)}}}}
-    @keyframes notification-slide-up{{0%{{opacity:1;transform:translate(-50%,0)}}100%{{opacity:0;transform:translate(-50%,-12px)}}}}
-    </style>
-    <div class="custom-notification">{message}</div>
-    """, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+        .custom-notification{{position:fixed;top:75px;left:50%;transform:translateX(-50%);z-index:999999;min-width:380px;max-width:650px;padding:15px 24px;background:rgba(5,35,20,.97);border:1px solid #20ff8a;border-radius:12px;color:#20ff8a;font-size:15px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;justify-content:center;text-align:center;animation:notification-slide-down .5s ease-out forwards,notification-slide-up .5s ease-in {duration}s forwards;pointer-events:none}}
+        @keyframes notification-slide-down{{0%{{opacity:0;transform:translate(-50%,-12px)}}100%{{opacity:1;transform:translate(-50%,0)}}}}
+        @keyframes notification-slide-up{{0%{{opacity:1;transform:translate(-50%,0)}}100%{{opacity:0;transform:translate(-50%,-12px)}}}}
+        </style>
+        <div class="custom-notification">{message}</div>
+        """,
+        unsafe_allow_html=True,
+    )
 
-if "pending_notification" not in st.session_state: st.session_state["pending_notification"]=None
+st.session_state.setdefault("pending_notification", None)
 if st.session_state.get("pending_notification"):
-    msg=st.session_state["pending_notification"]
-    st.session_state["pending_notification"]=None
+    msg = st.session_state.pending_notification
+    st.session_state.pending_notification = None
     show_notification(msg)
 
 #====================================================================================
 
 def get_uploaded_file_id(uploaded_file):
-    """Create a stable identifier for the uploaded file."""
     if uploaded_file is None:
         return None
-
     uploaded_file.seek(0)
     file_bytes = uploaded_file.getvalue()
-    if not file_bytes:
-        return None
-
-    return f"{uploaded_file.name}:{uploaded_file.size}:{hashlib.md5(file_bytes).hexdigest()}"
+    return None if not file_bytes else f"{uploaded_file.name}:{uploaded_file.size}:{hashlib.md5(file_bytes).hexdigest()}"
 
 
 def render_preparation_popup(step_index, total_steps, status, detail, title="Preparing your dataset", current_step_name=None):
@@ -65,67 +62,46 @@ def render_preparation_popup(step_index, total_steps, status, detail, title="Pre
     st.session_state.prep_popup_current_step_name = current_step_name
 
     progress_percent = 100 if status == "success" else max(8, int(((step_index + 1) / total_steps) * 100))
-    step_names = [
-        "Validate required columns",
-        "Check missing values",
-        "Remove duplicate rows",
-        "Fix data types",
-        "Finalize dataset",
-    ]
-
+    step_names = ["Validate required columns", "Check missing values", "Remove duplicate rows", "Fix data types", "Finalize dataset"]
     status_styles = {
-        "running": ("⏳", "background: #f8fafc; color: #0f172a; border: 1px solid #dbe4f0;"),
-        "success": ("✅", "background: #ecfdf3; color: #166534; border: 1px solid #a7f3d0;"),
-        "error": ("❌", "background: #fef2f2; color: #b91c1c; border: 1px solid #fecaca;"),
+        "running": ("⏳", "background:#f8fafc;color:#0f172a;border:1px solid #dbe4f0;"),
+        "success": ("✅", "background:#ecfdf3;color:#166534;border:1px solid #a7f3d0;"),
+        "error": ("❌", "background:#fef2f2;color:#b91c1c;border:1px solid #fecaca;"),
     }
-
+    default_style = "background:#fff;color:#64748b;border:1px solid #e2e8f0;"
     step_items = []
     for idx, step_name in enumerate(step_names):
-        if idx < step_index:
-            icon, style = status_styles["success"]
-        elif idx == step_index:
-            icon, style = status_styles[status]
-        else:
-            icon, style = ("○", "background: #ffffff; color: #64748b; border: 1px solid #e2e8f0;")
+        icon, style = status_styles["success"] if idx < step_index else status_styles[status] if idx == step_index else ("○", default_style)
+        step_items.append(f"<div style='margin-top:10px;padding:12px 14px;border-radius:10px;{style}'>{icon} <strong>{step_name}</strong></div>")
 
-        step_items.append(
-            f"<div style='margin-top:10px; padding:12px 14px; border-radius:10px; {style}'>{icon} <strong>{step_name}</strong></div>"
-        )
-
-    if status == "error":
-        message_box = f"<div style='margin-top:16px; padding:12px 14px; border-radius:10px; background:#fee2e2; color:#991b1b; border:1px solid #fecaca;'>{detail}</div>"
-    elif status == "success":
-        message_box = f"<div style='margin-top:16px; padding:12px 14px; border-radius:10px; background:#ecfdf3; color:#166534; border:1px solid #a7f3d0;'>{detail}</div>"
-    else:
-        message_box = f"<div style='margin-top:16px; padding:12px 14px; border-radius:10px; background:#f8fafc; color:#0f172a; border:1px solid #dbe4f0;'>{detail}</div>"
+    message_box = {
+        "error": f"<div style='margin-top:16px;padding:12px 14px;border-radius:10px;background:#fee2e2;color:#991b1b;border:1px solid #fecaca;'>{detail}</div>",
+        "success": f"<div style='margin-top:16px;padding:12px 14px;border-radius:10px;background:#ecfdf3;color:#166534;border:1px solid #a7f3d0;'>{detail}</div>",
+    }.get(status, f"<div style='margin-top:16px;padding:12px 14px;border-radius:10px;background:#f8fafc;color:#0f172a;border:1px solid #dbe4f0;'>{detail}</div>")
 
     current_label = current_step_name or (step_names[step_index] if step_index < len(step_names) else "Finishing up")
 
     html = f"""
-    <div style="position:fixed; inset:0; z-index:9999; background:rgba(15,23,42,0.72); display:flex; align-items:center; justify-content:center; padding:24px;">
-        <div style="width:min(780px, 100%); background:rgba(255,255,255,0.97); border-radius:18px; padding:24px 28px; box-shadow:0 20px 60px rgba(0,0,0,0.35); border:1px solid rgba(255,255,255,0.25);">
-            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                <div>
-                    <h3 style="margin:0 0 8px; color:#111827; font-size:24px;">{title}</h3>
-                    <p style="margin:0; color:#4b5563;">Please wait while we prepare your dataset.</p>
-                </div>
-                <div style="padding:8px 12px; border-radius:999px; background:#f3f4f6; color:#374151; font-size:13px; font-weight:700;">
-                    {current_label}
-                </div>
-            </div>
-            <div style="position:relative; height:10px; width:100%; background:#e5e7eb; border-radius:999px; overflow:hidden; margin-top:14px;">
-                <div style="height:100%; width:{progress_percent}%; background:linear-gradient(90deg, #ef4444, #f59e0b, #10b981); border-radius:999px; animation:pulse 1.2s ease-in-out infinite;"></div>
-            </div>
-            <div style="margin-top:16px;">
-                {''.join(step_items)}
-            </div>
-            {message_box}
+    <div style="position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.72);display:flex;align-items:center;justify-content:center;padding:24px;">
+      <div style="width:min(780px,100%);background:rgba(255,255,255,.97);border-radius:18px;padding:24px 28px;box-shadow:0 20px 60px rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.25);">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+          <div>
+            <h3 style="margin:0 0 8px;color:#111827;font-size:24px;">{title}</h3>
+            <p style="margin:0;color:#4b5563;">Please wait while we prepare your dataset.</p>
+          </div>
+          <div style="padding:8px 12px;border-radius:999px;background:#f3f4f6;color:#374151;font-size:13px;font-weight:700;">{current_label}</div>
         </div>
+        <div style="position:relative;height:10px;width:100%;background:#e5e7eb;border-radius:999px;overflow:hidden;margin-top:14px;">
+          <div style="height:100%;width:{progress_percent}%;background:linear-gradient(90deg,#ef4444,#f59e0b,#10b981);border-radius:999px;animation:pulse 1.2s ease-in-out infinite;"></div>
+        </div>
+        <div style="margin-top:16px;">{''.join(step_items)}</div>
+        {message_box}
+      </div>
     </div>
     <style>
     @keyframes pulse {{
-        0%, 100% {{ opacity: 0.9; transform: scaleX(1); }}
-        50% {{ opacity: 1; transform: scaleX(1.01); }}
+      0%, 100% {{ opacity: 0.9; transform: scaleX(1); }}
+      50% {{ opacity: 1; transform: scaleX(1.01); }}
     }}
     </style>
     """
@@ -133,40 +109,18 @@ def render_preparation_popup(step_index, total_steps, status, detail, title="Pre
 
 
 def set_background_image(image_path):
-    """Load and set a local image as the background"""
     with open(image_path, "rb") as image_file:
         image_data = base64.b64encode(image_file.read()).decode()
-
-    page_bg_img = f"""
-    <style>
-    [data-testid="stAppViewContainer"] {{
-        position: relative;
-        isolation: isolate;
-        background: transparent;
-    }}
-
-    [data-testid="stAppViewContainer"]::before {{
-        content: "";
-        position: fixed;
-        inset: 0;
-        background-image: url("data:image/png;base64,{image_data}");
-        background-size: cover;
-        background-position: center;
-        background-repeat: no-repeat;
-        background-attachment: fixed;
-        filter: blur(8px);
-        transform: scale(1.05);
-        z-index: -1;
-        pointer-events: none;
-    }}
-
-    [data-testid="stAppViewContainer"] > * {{
-        position: relative;
-        z-index: 1;
-    }}
-    </style>
-    """
-    st.markdown(page_bg_img, unsafe_allow_html=True)
+    st.markdown(
+        f"""
+        <style>
+        [data-testid="stAppViewContainer"]{{position:relative;isolation:isolate;background:transparent}}
+        [data-testid="stAppViewContainer"]::before{{content:"";position:fixed;inset:0;background-image:url("data:image/png;base64,{image_data}");background-size:cover;background-position:center;background-repeat:no-repeat;background-attachment:fixed;filter:blur(8px);transform:scale(1.05);z-index:-1;pointer-events:none}}
+        [data-testid="stAppViewContainer"] > *{{position:relative;z-index:1}}
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
 
 
 set_background_image("Abstract red to black gradient background with grainy noise texture for digital design projects.jfif")
