@@ -610,7 +610,7 @@ with st.sidebar:
     # --------------------------------------------------------
 
     st.markdown(
-        "<div style='font-size:18px;font-weight:700;margin-bottom:10px;'>📋 Prepared Dataset</div>",
+        "<div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:10px;'>📋 Prepared Dataset</div>",
         unsafe_allow_html=True,
     )
 
@@ -647,7 +647,7 @@ with st.sidebar:
 
     st.markdown(
         """
-        <div style='font-size:18px;font-weight:700;margin-bottom:6px;'>🧹 Data Preparation</div>
+        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>🧹 Data Preparation</div>
         <div style='font-size:13px;color:#999999;line-height:1.5;margin-bottom:12px;'>
             This section shows how the uploaded dataset was validated and prepared before analysis.
         </div>
