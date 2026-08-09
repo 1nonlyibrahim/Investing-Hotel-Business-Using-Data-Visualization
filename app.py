@@ -513,14 +513,24 @@ if uploaded_file is not None:
         progress_bar.progress(25)
         update_status("🧹 Preparing your dataset", active_step=2, completed_steps=[1])
         rows_before_missing = len(df)
-        df = df.dropna().copy()
+
+        critical_columns = [
+            "hotel",
+            "is_canceled",
+            "lead_time",
+            "arrival_date_year",
+            "arrival_date_month",
+            "arrival_date_day_of_month",
+            "adr"
+        ]
+        df = df.dropna(subset=critical_columns).copy()
         missing_rows_removed = rows_before_missing - len(df)
         progress_bar.progress(50)
 
         update_status("🧹 Preparing your dataset", active_step=3, completed_steps=[1, 2])
-        rows_before_duplicates = len(df)
+        rows_before_duplicates = df.duplicated().sum()
         df = df.drop_duplicates().copy()
-        duplicate_rows_removed = rows_before_duplicates - len(df)
+        duplicate_rows_removed = rows_before_duplicates
         progress_bar.progress(75)
 
         update_status("⚙️ Finalizing your dataset", active_step=4, completed_steps=[1, 2, 3])
@@ -535,18 +545,19 @@ if uploaded_file is not None:
         progress_bar.progress(100)
         time.sleep(0.8)
 
-        prepared_df = df.copy()
-        st.session_state["prepared_df"] = prepared_df
+        st.session_state["prepared_df"] = df
         st.session_state["preparation_stats"] = {
             "original_rows": len(original_df),
-            "final_rows": len(prepared_df),
+            "final_rows": len(df),
             "original_columns": len(original_df.columns),
-            "final_columns": len(prepared_df.columns),
+            "final_columns": len(df.columns),
             "missing_rows_removed": missing_rows_removed,
             "duplicate_rows_removed": duplicate_rows_removed,
-            "remaining_missing_values": int(prepared_df.isna().sum().sum()),
-            "remaining_duplicates": int(prepared_df.duplicated().sum()),
+            "remaining_missing_values": int(df.isna().sum().sum()),
+            "remaining_duplicates": int(df.duplicated().sum()),
         }
+
+        prepared_df = df.copy()
 
         render_prep_status(
             status_text,
@@ -594,7 +605,7 @@ with st.sidebar:
     )
 
     selected_page = st.selectbox(
-        "Select analysis",
+        "Select Analysis Page from the dropdown list below:",
         analysis_pages,
         key="selected_analysis_page",
     )
