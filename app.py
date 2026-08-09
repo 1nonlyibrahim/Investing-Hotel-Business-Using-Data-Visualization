@@ -125,18 +125,18 @@ def set_background_image(image_path):
 
 set_background_image("Abstract red to black gradient background with grainy noise texture for digital design projects.jfif")
 
-#====================================================================================
+#=========================================================================================================================================================================================================
 # HEADER SECTION
-#====================================================================================
+#=========================================================================================================================================================================================================
 
 st.markdown(
     "<h1 style='text-align: center; text-transform: uppercase; color: white; font-weight: 700; font-size: 64px;'>Hotel Booking Insights Dashboard</h1>",
     unsafe_allow_html=True,
 )
 
-#====================================================================================
+#=========================================================================================================================================================================================================
 # UPLOADER BOX
-#====================================================================================
+#=========================================================================================================================================================================================================
 
 st.markdown(
     """
@@ -222,3 +222,309 @@ else:
                 st.code(str(e))
     else:
         st.session_state["uploaded_file_name"] = uploaded_file.name
+
+#=========================================================================================================================================================================================================
+#DATA PREPARATION BUTTON
+#=========================================================================================================================================================================================================
+
+# ------------------------------------------------------------
+# REQUIRED HOTEL BOOKING COLUMNS
+# ------------------------------------------------------------
+
+REQUIRED_COLUMNS = [
+    "hotel",
+    "is_canceled",
+    "lead_time",
+    "arrival_date_year",
+    "arrival_date_month",
+    "arrival_date_week_number",
+    "arrival_date_day_of_month",
+    "stays_in_weekend_nights",
+    "stays_in_weekdays_nights",
+    "adults",
+    "children",
+    "babies",
+    "meal",
+    "market_segment",
+    "distribution_channel",
+    "is_repeated_guest",
+    "previous_cancellations",
+    "previous_bookings_not_canceled",
+    "booking_changes",
+    "deposit_type",
+    "agent",
+    "company",
+    "days_in_waiting_list",
+    "customer_type",
+    "adr",
+    "required_car_parking_spaces",
+    "total_of_special_requests",
+    "reservation_status",
+]
+
+NUMERIC_COLUMNS = [
+    "is_canceled",
+    "lead_time",
+    "arrival_date_year",
+    "arrival_date_week_number",
+    "arrival_date_day_of_month",
+    "stays_in_weekend_nights",
+    "stays_in_weekdays_nights",
+    "adults",
+    "children",
+    "babies",
+    "is_repeated_guest",
+    "previous_cancellations",
+    "previous_bookings_not_canceled",
+    "booking_changes",
+    "days_in_waiting_list",
+    "adr",
+    "required_car_parking_spaces",
+    "total_of_special_requests",
+]
+
+STRING_COLUMNS = [
+    "hotel",
+    "arrival_date_month",
+    "meal",
+    "market_segment",
+    "distribution_channel",
+    "deposit_type",
+    "customer_type",
+    "reservation_status",
+]
+
+PREP_STEP_LABELS = [
+    ("Checking required columns", "Required columns verified"),
+    ("Removing missing data", "Missing data removed"),
+    ("Removing duplicate records", "Duplicate records removed"),
+    ("Fixing column data types", "Data types corrected"),
+]
+
+
+# ------------------------------------------------------------
+# SESSION STATE
+# ------------------------------------------------------------
+
+for key, value in {
+    "preparation_running": False,
+    "preparation_complete": False,
+    "prepared_df": None,
+    "original_df": None,
+    "preparation_stats": {},
+}.items():
+    st.session_state.setdefault(key, value)
+
+
+# ------------------------------------------------------------
+# BUTTON CSS
+# ------------------------------------------------------------
+
+st.markdown(
+    """
+    <style>
+    div.stButton > button.prepare-data-btn {
+        background-color: #e60000 !important;
+        color: white !important;
+        border: 2px solid #ff1a1a !important;
+        border-radius: 10px !important;
+        padding: 13px 35px !important;
+        font-size: 17px !important;
+        font-weight: 700 !important;
+        letter-spacing: 0.3px !important;
+        transition: all 0.3s ease !important;
+        box-shadow: 0 0 0 rgba(255, 0, 0, 0) !important;
+    }
+    div.stButton > button.prepare-data-btn:hover {
+        background-color: #ff1111 !important;
+        color: white !important;
+        border-color: #ff3333 !important;
+        box-shadow:
+            0 0 10px rgba(255, 0, 0, 0.9),
+            0 0 25px rgba(255, 0, 0, 0.8),
+            0 0 45px rgba(255, 0, 0, 0.55) !important;
+        transform: translateY(-2px) !important;
+    }
+    .prep-container {
+        max-width: 650px;
+        margin: 25px auto;
+        padding: 25px 30px;
+        border-radius: 15px;
+        background: rgba(20, 20, 20, 0.92);
+        border: 1px solid rgba(255, 0, 0, 0.35);
+        box-shadow:
+            0 0 15px rgba(255, 0, 0, 0.15),
+            inset 0 0 20px rgba(255, 0, 0, 0.03);
+    }
+    .prep-title {
+        text-align: center;
+        color: white;
+        font-size: 21px;
+        font-weight: 700;
+        margin-bottom: 18px;
+    }
+    .prep-step {
+        color: #bdbdbd;
+        font-size: 15px;
+        padding: 9px 0;
+    }
+    .prep-active {
+        color: #ff3333;
+        font-weight: 700;
+    }
+    .prep-complete {
+        color: #42ff75;
+        font-weight: 600;
+    }
+    .prep-final {
+        text-align: center;
+        color: #ff3333;
+        font-size: 15px;
+        font-weight: 700;
+        margin-top: 15px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+
+# ------------------------------------------------------------
+# ONLY SHOW BUTTON AFTER FILE IS UPLOADED
+# ------------------------------------------------------------
+
+def render_prep_status(container, title, active_step=None, completed_steps=None):
+    completed_steps = completed_steps or []
+    html = [f'<div class="prep-container">', f'<div class="prep-title">{title}</div>']
+    for i, (active_label, complete_label) in enumerate(PREP_STEP_LABELS, 1):
+        if i in completed_steps:
+            css, prefix, label = "prep-complete", "✓", complete_label
+        elif active_step is not None and i == active_step:
+            css, prefix, label = "prep-active", "●", active_label
+        else:
+            css, prefix, label = "", "○", active_label
+        cls = f' {css}' if css else ""
+        html.append(f'<div class="prep-step{cls}">{prefix} Step {i} — {label}</div>')
+    html.append('<div class="prep-final">Processing data for analysis…</div></div>')
+    container.markdown("\n".join(html), unsafe_allow_html=True)
+
+
+if uploaded_file is not None:
+
+    if not st.session_state["preparation_running"] and not st.session_state["preparation_complete"]:
+        _, button_col, _ = st.columns([1, 2, 1])
+        with button_col:
+            st.markdown(
+                """
+                <div style="
+                    text-align:center;
+                    margin-bottom:8px;
+                    color:#bdbdbd;
+                    font-size:14px;
+                ">
+                    Dataset uploaded successfully
+                </div>
+                """,
+                unsafe_allow_html=True,
+            )
+            prepare_clicked = st.button(
+                "⚡ Validate & Prepare Data",
+                key="validate_prepare_button",
+                width="stretch",
+            )
+            st.markdown(
+                """
+                <style>
+                button[kind="secondary"] {
+                    font-weight: 700;
+                }
+                </style>
+                """,
+                unsafe_allow_html=True,
+            )
+        if prepare_clicked:
+            st.session_state["preparation_running"] = True
+            st.rerun()
+
+    if st.session_state["preparation_running"]:
+        try:
+            uploaded_file.seek(0)
+            df = pd.read_csv(uploaded_file)
+        except Exception as e:
+            st.session_state["preparation_running"] = False
+            st.error(f"Unable to read the uploaded CSV file.\n\n{e}")
+            st.stop()
+
+        original_df = df.copy()
+        st.session_state["original_df"] = original_df
+
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        render_prep_status(status_text, "🔍 Validating your dataset", active_step=1)
+        time.sleep(0.7)
+
+        missing_columns = [column for column in REQUIRED_COLUMNS if column not in set(df.columns)]
+        if missing_columns:
+            progress_bar.empty()
+            status_text.error(
+                "❌ Dataset validation failed.\n\n"
+                "The following required columns are missing:\n\n"
+                + "\n".join(f"• {column}" for column in missing_columns)
+            )
+            st.session_state["preparation_running"] = False
+            st.stop()
+        progress_bar.progress(25)
+
+        render_prep_status(status_text, "🧹 Preparing your dataset", active_step=2, completed_steps=[1])
+        time.sleep(0.7)
+        rows_before_missing = len(df)
+        df = df.dropna().copy()
+        missing_rows_removed = rows_before_missing - len(df)
+        progress_bar.progress(50)
+
+        render_prep_status(status_text, "🧹 Preparing your dataset", active_step=3, completed_steps=[1, 2])
+        time.sleep(0.7)
+        rows_before_duplicates = len(df)
+        df = df.drop_duplicates().copy()
+        duplicate_rows_removed = rows_before_duplicates - len(df)
+        progress_bar.progress(75)
+
+        render_prep_status(status_text, "⚙️ Finalizing your dataset", active_step=4, completed_steps=[1, 2, 3])
+        time.sleep(0.7)
+
+        for column in NUMERIC_COLUMNS:
+            if column in df.columns:
+                df[column] = pd.to_numeric(df[column], errors="coerce")
+        for column in STRING_COLUMNS:
+            if column in df.columns:
+                df[column] = df[column].astype("string")
+        df = df.dropna().copy()
+
+        progress_bar.progress(100)
+        time.sleep(0.8)
+
+        prepared_df = df.copy()
+        st.session_state["prepared_df"] = prepared_df
+        st.session_state["preparation_stats"] = {
+            "original_rows": len(original_df),
+            "final_rows": len(prepared_df),
+            "original_columns": len(original_df.columns),
+            "final_columns": len(prepared_df.columns),
+            "missing_rows_removed": missing_rows_removed,
+            "duplicate_rows_removed": duplicate_rows_removed,
+            "remaining_missing_values": int(prepared_df.isna().sum().sum()),
+            "remaining_duplicates": int(prepared_df.duplicated().sum()),
+        }
+
+        render_prep_status(status_text, "✅ Dataset preparation complete", completed_steps=[1, 2, 3, 4])
+        time.sleep(1)
+
+        progress_bar.empty()
+        status_text.empty()
+        st.session_state["preparation_running"] = False
+        st.session_state["preparation_complete"] = True
+        st.rerun()
+
+    if st.session_state["preparation_complete"]:
+        pass
