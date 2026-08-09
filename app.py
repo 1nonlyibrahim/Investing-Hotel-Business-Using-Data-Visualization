@@ -24,79 +24,21 @@ st.set_page_config(
 # ALL THE DEF FUNCTIONS ARE DEFINED HERE
 #=========================================================================================================================================================================================================
 def show_notification(message, duration=3):
-    """
-    Displays a reusable animated dark-green notification
-    near the top-center of the screen.
-    """
+    """Displays a reusable animated dark-green notification near the top-center of the screen."""
+    st.markdown(f"""
+    <style>
+    .custom-notification{{position:fixed;top:75px;left:50%;transform:translateX(-50%);z-index:999999;min-width:380px;max-width:650px;padding:15px 24px;background:rgba(5,35,20,.97);border:1px solid #20ff8a;border-radius:12px;color:#20ff8a;font-size:15px;font-weight:600;letter-spacing:.2px;display:flex;align-items:center;justify-content:center;text-align:center;animation:notification-slide-down .5s ease-out forwards,notification-slide-up .5s ease-in {duration}s forwards;pointer-events:none}}
+    @keyframes notification-slide-down{{0%{{opacity:0;transform:translate(-50%,-12px)}}100%{{opacity:1;transform:translate(-50%,0)}}}}
+    @keyframes notification-slide-up{{0%{{opacity:1;transform:translate(-50%,0)}}100%{{opacity:0;transform:translate(-50%,-12px)}}}}
+    </style>
+    <div class="custom-notification">{message}</div>
+    """, unsafe_allow_html=True)
 
-    st.markdown(
-        f"""
-        <style>
-        .custom-notification {{
-            position: fixed;
-            top: 75px;
-            left: 50%;
-            transform: translateX(-50%);
-            z-index: 999999;
-            min-width: 380px;
-            max-width: 650px;
-            padding: 15px 24px;
-            background: rgba(5, 35, 20, 0.97);
-            border: 1px solid #20ff8a;
-            border-radius: 12px;
-            color: #20ff8a;
-            font-size: 15px;
-            font-weight: 600;
-            letter-spacing: 0.2px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            text-align: center;
-            animation:
-                notification-slide-down 0.5s ease-out forwards,
-                notification-slide-up 0.5s ease-in {duration}s forwards;
-            pointer-events: none;
-        }}
-
-        @keyframes notification-slide-down {{
-            0% {{
-                opacity: 0;
-                transform: translate(-50%, -12px);
-            }}
-            100% {{
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }}
-        }}
-
-        @keyframes notification-slide-up {{
-            0% {{
-                opacity: 1;
-                transform: translate(-50%, 0);
-            }}
-            100% {{
-                opacity: 0;
-                transform: translate(-50%, -12px);
-            }}
-        }}
-        </style>
-
-        <div class="custom-notification">
-            {message}
-        </div>
-        """,
-        unsafe_allow_html=True
-    )
-
-if "pending_notification" not in st.session_state:
-    st.session_state["pending_notification"] = None
-
+if "pending_notification" not in st.session_state: st.session_state["pending_notification"]=None
 if st.session_state.get("pending_notification"):
-    notification_message = st.session_state["pending_notification"]
-
-    st.session_state["pending_notification"] = None
-
-    show_notification(notification_message)
+    msg=st.session_state["pending_notification"]
+    st.session_state["pending_notification"]=None
+    show_notification(msg)
 
 #====================================================================================
 
