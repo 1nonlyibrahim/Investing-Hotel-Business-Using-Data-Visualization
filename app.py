@@ -409,26 +409,49 @@ def render_prep_status(container, title, active_step=None, completed_steps=None)
     container.markdown("\n".join(html), unsafe_allow_html=True)
 
 
-if uploaded_file is not None:
+st.session_state.setdefault("preparation_running", False)
+st.session_state.setdefault("preparation_complete", False)
 
+if uploaded_file is not None:
     if not st.session_state["preparation_running"] and not st.session_state["preparation_complete"]:
-        _, button_col, _ = st.columns([1, 2, 1])
-        with button_col:
+        st.markdown(
+            """
+            <style>
+            div[data-testid="stButton"] > button {
+                background: #e60000 !important;
+                color: #ffffff !important;
+                border: 2px solid #ff2222 !important;
+                border-radius: 10px !important;
+                font-size: 17px !important;
+                font-weight: 700 !important;
+                padding: 12px 32px !important;
+                transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease !important;
+                box-shadow: 0 0 0 rgba(255, 0, 0, 0) !important;
+            }
+            div[data-testid="stButton"] > button:hover {
+                background: #ff0000 !important;
+                color: #ffffff !important;
+                border: 2px solid #ff5555 !important;
+                box-shadow:
+                    0 0 8px #ff0000,
+                    0 0 18px #ff0000,
+                    0 0 35px rgba(255, 0, 0, 0.9),
+                    0 0 60px rgba(255, 0, 0, 0.6) !important;
+                transform: translateY(-2px) !important;
+            }
+            </style>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
             prepare_clicked = st.button(
                 "⚡ Validate & Prepare Data",
                 key="validate_prepare_button",
                 width="stretch",
             )
-            st.markdown(
-                """
-                <style>
-                button[kind="secondary"] {
-                    font-weight: 700;
-                }
-                </style>
-                """,
-                unsafe_allow_html=True,
-            )
+
         if prepare_clicked:
             st.session_state["preparation_running"] = True
             st.rerun()
@@ -448,8 +471,16 @@ if uploaded_file is not None:
         progress_bar = st.progress(0)
         status_text = st.empty()
 
-        render_prep_status(status_text, "🔍 Validating your dataset", active_step=1)
-        time.sleep(0.7)
+        def update_status(title, active_step=None, completed_steps=None):
+            render_prep_status(
+                status_text,
+                title,
+                active_step=active_step,
+                completed_steps=completed_steps,
+            )
+            time.sleep(0.7)
+
+        update_status("🔍 Validating your dataset", active_step=1)
 
         missing_columns = [column for column in REQUIRED_COLUMNS if column not in set(df.columns)]
         if missing_columns:
@@ -461,25 +492,21 @@ if uploaded_file is not None:
             )
             st.session_state["preparation_running"] = False
             st.stop()
-        progress_bar.progress(25)
 
-        render_prep_status(status_text, "🧹 Preparing your dataset", active_step=2, completed_steps=[1])
-        time.sleep(0.7)
+        progress_bar.progress(25)
+        update_status("🧹 Preparing your dataset", active_step=2, completed_steps=[1])
         rows_before_missing = len(df)
         df = df.dropna().copy()
         missing_rows_removed = rows_before_missing - len(df)
         progress_bar.progress(50)
 
-        render_prep_status(status_text, "🧹 Preparing your dataset", active_step=3, completed_steps=[1, 2])
-        time.sleep(0.7)
+        update_status("🧹 Preparing your dataset", active_step=3, completed_steps=[1, 2])
         rows_before_duplicates = len(df)
         df = df.drop_duplicates().copy()
         duplicate_rows_removed = rows_before_duplicates - len(df)
         progress_bar.progress(75)
 
-        render_prep_status(status_text, "⚙️ Finalizing your dataset", active_step=4, completed_steps=[1, 2, 3])
-        time.sleep(0.7)
-
+        update_status("⚙️ Finalizing your dataset", active_step=4, completed_steps=[1, 2, 3])
         for column in NUMERIC_COLUMNS:
             if column in df.columns:
                 df[column] = pd.to_numeric(df[column], errors="coerce")
@@ -504,7 +531,11 @@ if uploaded_file is not None:
             "remaining_duplicates": int(prepared_df.duplicated().sum()),
         }
 
-        render_prep_status(status_text, "✅ Dataset preparation complete", completed_steps=[1, 2, 3, 4])
+        render_prep_status(
+            status_text,
+            "✅ Dataset preparation complete",
+            completed_steps=[1, 2, 3, 4],
+        )
         time.sleep(1)
 
         progress_bar.empty()
