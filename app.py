@@ -563,3 +563,158 @@ if uploaded_file is not None:
 
     if st.session_state["preparation_complete"]:
         pass
+
+#=========================================================================================================================================================================================================
+# SIDEBAR — NAVIGATION + PREPARED DATASET INFORMATION
+#=========================================================================================================================================================================================================
+
+with st.sidebar:
+
+    # --------------------------------------------------------
+    # 1. ANALYSIS NAVIGATION
+    # --------------------------------------------------------
+
+    analysis_pages = [
+        "📊 Executive Overview",
+        "🏨 Hotel Performance",
+        "📅 Booking Trends",
+        "❌ Cancellation Analysis",
+        "⏳ Lead Time Analysis",
+        "🛏️ Stay Duration",
+        "💰 Revenue Analysis",
+        "👥 Customer & Market Analysis",
+        "🔎 Relationship Analysis",
+        "📌 Business Insights",
+        "💡 Recommendations",
+    ]
+
+    st.markdown(
+        "<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>📊 Analysis</div>",
+        unsafe_allow_html=True,
+    )
+
+    selected_page = st.selectbox(
+        "Select analysis",
+        analysis_pages,
+        key="selected_analysis_page",
+    )
+
+    # --------------------------------------------------------
+    # DIVIDER
+    # --------------------------------------------------------
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # 2. PREPARED DATASET INFORMATION
+    # --------------------------------------------------------
+
+    st.markdown(
+        "<div style='font-size:18px;font-weight:700;margin-bottom:10px;'>📋 Prepared Dataset</div>",
+        unsafe_allow_html=True,
+    )
+
+    prepared_df = st.session_state.get("prepared_df")
+
+    with st.expander("📊 Dataset Information", expanded=False):
+        if prepared_df is not None:
+            st.metric("Rows", f"{len(prepared_df):,}")
+            st.metric("Columns", f"{len(prepared_df.columns):,}")
+            st.metric("Missing Values", f"{int(prepared_df.isna().sum().sum()):,}")
+            st.metric("Duplicate Rows", f"{int(prepared_df.duplicated().sum()):,}")
+        else:
+            st.info("Prepare the dataset first to view dataset information.")
+
+    # --------------------------------------------------------
+    # DATASET PREVIEW
+    # --------------------------------------------------------
+
+    with st.expander("👁️ Dataset Preview", expanded=False):
+        if prepared_df is not None:
+            st.dataframe(prepared_df.head(10), width="stretch", hide_index=True)
+        else:
+            st.info("Dataset preview will appear after preparation.")
+
+    # --------------------------------------------------------
+    # DIVIDER
+    # --------------------------------------------------------
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # 3. DATA PREPARATION INFORMATION
+    # --------------------------------------------------------
+
+    st.markdown(
+        """
+        <div style='font-size:18px;font-weight:700;margin-bottom:6px;'>🧹 Data Preparation</div>
+        <div style='font-size:13px;color:#999999;line-height:1.5;margin-bottom:12px;'>
+            This section shows how the uploaded dataset was validated and prepared before analysis.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # --------------------------------------------------------
+    # PREPARATION SUMMARY
+    # --------------------------------------------------------
+
+    with st.expander("🔍 Preparation Summary", expanded=False):
+        stats = st.session_state.get("preparation_stats", {})
+
+        if stats:
+            st.markdown("**📥 Original Dataset**")
+            st.write(f"Rows: **{stats.get('original_rows', 0):,}**")
+            st.write(f"Columns: **{stats.get('original_columns', 0):,}**")
+            st.divider()
+
+            st.markdown("**⚙️ Preparation Performed**")
+            st.markdown("✅ Required columns verified")
+            st.markdown(
+                f"✅ Missing-data rows removed: **{stats.get('missing_rows_removed', 0):,}**"
+            )
+            st.markdown(
+                f"✅ Duplicate rows removed: **{stats.get('duplicate_rows_removed', 0):,}**"
+            )
+            st.markdown("✅ Column data types corrected")
+            st.divider()
+
+            st.markdown("**📤 Final Prepared Dataset**")
+            st.write(f"Rows: **{stats.get('final_rows', 0):,}**")
+            st.write(f"Columns: **{stats.get('final_columns', 0):,}**")
+            st.write(
+                f"Remaining missing values: **{stats.get('remaining_missing_values', 0):,}**"
+            )
+            st.write(f"Remaining duplicates: **{stats.get('remaining_duplicates', 0):,}**")
+        else:
+            st.info("Preparation statistics will appear after the dataset has been prepared.")
+
+    # --------------------------------------------------------
+    # WHAT WAS DONE
+    # --------------------------------------------------------
+
+    with st.expander("📝 What Was Done?", expanded=False):
+        st.markdown(
+            """
+            **The dataset preparation process includes:**
+
+            **1. Column Validation**  
+            Required columns were checked to ensure that the uploaded dataset contains the fields needed for analysis.
+
+            **2. Missing Data Removal**  
+            Rows containing missing data were removed.
+
+            **3. Duplicate Removal**  
+            Duplicate records were identified and removed.
+
+            **4. Data Type Correction**  
+            Numerical and categorical columns were converted to appropriate data types.
+
+            **5. Analysis Preparation**  
+            The cleaned dataset was stored and made ready for the dashboard's analysis and visualizations.
+            """
+        )
+
+
+
+# PAGE ROUTING
