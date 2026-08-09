@@ -126,12 +126,29 @@ def set_background_image(image_path):
 set_background_image("Abstract red to black gradient background with grainy noise texture for digital design projects.jfif")
 
 #=========================================================================================================================================================================================================
-# HEADER SECTION
+# HEADER AND INTRO SECTION
 #=========================================================================================================================================================================================================
 
 st.markdown(
     "<h1 style='text-align: center; text-transform: uppercase; color: white; font-weight: 700; font-size: 64px;'>Hotel Booking Insights Dashboard</h1>",
     unsafe_allow_html=True,
+)
+
+st.markdown(
+    """
+    <div style="text-align:center; max-width:800px; margin:auto;">
+
+    <p style="font-size:17px; color:#bdbdbd; line-height:1.7;">
+    An interactive Business Intelligence dashboard for analyzing hotel
+    booking behavior, cancellation patterns, customer trends, pricing,
+    lead time, stay duration, and estimated revenue.
+    Upload your hotel booking dataset and transform raw data into
+    meaningful insights and actionable business recommendations.
+    </p>
+
+    </div>
+    """,
+    unsafe_allow_html=True
 )
 
 #=========================================================================================================================================================================================================
