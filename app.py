@@ -556,9 +556,9 @@ if uploaded_file is not None:
             "remaining_missing_values": int(df.isna().sum().sum()),
             "remaining_duplicates": int(df.duplicated().sum()),
         }
-
+        st.write("DEBUG — df before prepared_df:", df.shape)
         prepared_df = df.copy()
-
+        st.write("DEBUG — prepared_df:", prepared_df.shape)
         render_prep_status(
             status_text,
             "✅ Dataset preparation complete",
