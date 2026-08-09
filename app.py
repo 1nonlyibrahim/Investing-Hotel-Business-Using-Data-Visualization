@@ -589,7 +589,7 @@ with st.sidebar:
     ]
 
     st.markdown(
-        "<div style='font-size:18px;font-weight:700;margin-bottom:8px;'>📊 Analysis</div>",
+        "<div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:8px;'>📊 Analysis</div>",
         unsafe_allow_html=True,
     )
 
