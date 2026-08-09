@@ -414,19 +414,6 @@ if uploaded_file is not None:
     if not st.session_state["preparation_running"] and not st.session_state["preparation_complete"]:
         _, button_col, _ = st.columns([1, 2, 1])
         with button_col:
-            st.markdown(
-                """
-                <div style="
-                    text-align:center;
-                    margin-bottom:8px;
-                    color:#bdbdbd;
-                    font-size:14px;
-                ">
-                    Dataset uploaded successfully
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
             prepare_clicked = st.button(
                 "⚡ Validate & Prepare Data",
                 key="validate_prepare_button",
