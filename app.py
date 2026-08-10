@@ -764,7 +764,7 @@ def render_executive_overview_page(df):
         "stays_in_weekend_nights" in data.columns
         and "stays_in_week_nights" in data.columns
     ):
-        data["total_stay_nights"] = (
+        data["stay_duration"] = (
             pd.to_numeric(
                 data["stays_in_weekend_nights"],
                 errors="coerce"
@@ -777,7 +777,7 @@ def render_executive_overview_page(df):
         )
 
     else:
-        data["total_stay_nights"] = 0
+        data["stay_duration"] = 0
 
     # Estimated revenue
     if "adr" in data.columns:
@@ -787,7 +787,7 @@ def render_executive_overview_page(df):
                 errors="coerce"
             ).fillna(0)
             *
-            data["total_stay_nights"]
+            data["stay_duration"]
         )
     else:
         data["estimated_revenue"] = 0
@@ -903,7 +903,7 @@ def render_executive_overview_page(df):
 
     # Average stay
     average_stay = (
-        data["total_stay_nights"].mean()
+        data["stay_duration"].mean()
         if len(data) > 0
         else 0
     )
@@ -1497,7 +1497,7 @@ def render_hotel_performance_page(df):
         "stays_in_weekend_nights" in data.columns
         and "stays_in_week_nights" in data.columns
     ):
-        data["total_stay_nights"] = (
+        data["stay_duration"] = (
             pd.to_numeric(
                 data["stays_in_weekend_nights"],
                 errors="coerce"
@@ -1510,7 +1510,7 @@ def render_hotel_performance_page(df):
         )
 
     else:
-        data["total_stay_nights"] = 0
+        data["stay_duration"] = 0
 
     # Estimated revenue
     if "adr" in data.columns:
@@ -1521,7 +1521,7 @@ def render_hotel_performance_page(df):
                 errors="coerce"
             ).fillna(0)
             *
-            data["total_stay_nights"]
+            data["stay_duration"]
         )
 
     else:
@@ -1717,7 +1717,7 @@ def render_hotel_performance_page(df):
     city_average_stay = (
         data.loc[
             data["hotel"] == "City Hotel",
-            "total_stay_nights"
+            "stay_duration"
         ].mean()
         if city_bookings > 0
         else 0
@@ -1726,7 +1726,7 @@ def render_hotel_performance_page(df):
     resort_average_stay = (
         data.loc[
             data["hotel"] == "Resort Hotel",
-            "total_stay_nights"
+            "stay_duration"
         ].mean()
         if resort_bookings > 0
         else 0
@@ -2943,14 +2943,14 @@ def render_booking_trends_page(df):
                     errors="coerce"
                 ).fillna(0)
 
-                prepared_df["total_stay_nights"] = (
+                prepared_df["stay_duration"] = (
                     prepared_df["stays_in_weekend_nights"]
                     + prepared_df["stays_in_week_nights"]
                 )
 
                 prepared_df["estimated_revenue"] = (
                     prepared_df["adr"]
-                    * prepared_df["total_stay_nights"]
+                    * prepared_df["stay_duration"]
                 )
     with col1:
         # Create Estimated Revenue
@@ -3477,7 +3477,7 @@ def render_cancellation_analysis_page(df):
             errors="coerce"
         ).fillna(0)
 
-        data["total_stay_nights"] = (
+        data["stay_duration"] = (
             data["stays_in_weekend_nights"]
             +
             data["stays_in_week_nights"]
@@ -3486,7 +3486,7 @@ def render_cancellation_analysis_page(df):
         data["estimated_revenue"] = (
             data["adr"]
             *
-            data["total_stay_nights"]
+            data["stay_duration"]
         )
 
         revenue_lost = (
@@ -4037,7 +4037,7 @@ def render_cancellation_analysis_page(df):
         ]
     ):
 
-        data["total_stay_nights"] = (
+        data["stay_duration"] = (
             pd.to_numeric(
                 data["stays_in_weekend_nights"],
                 errors="coerce"
@@ -4050,7 +4050,7 @@ def render_cancellation_analysis_page(df):
         )
 
         data["Stay Group"] = pd.cut(
-            data["total_stay_nights"],
+            data["stay_duration"],
             bins=[
                 0,
                 1,
@@ -4366,7 +4366,7 @@ def render_lead_time_analysis_page(df):
             errors="coerce"
         ).fillna(0)
 
-        data["total_stay_nights"] = (
+        data["stay_duration"] = (
             data["stays_in_weekend_nights"]
             +
             data["stays_in_week_nights"]
@@ -4374,7 +4374,7 @@ def render_lead_time_analysis_page(df):
 
     else:
 
-        data["total_stay_nights"] = 0
+        data["stay_duration"] = 0
 
     # =============================================================================================
     # ESTIMATED REVENUE
@@ -4385,7 +4385,7 @@ def render_lead_time_analysis_page(df):
         data["estimated_revenue"] = (
             data["adr"].fillna(0)
             *
-            data["total_stay_nights"]
+            data["stay_duration"]
         )
 
     else:
@@ -4993,24 +4993,22 @@ def render_stay_duration_analysis_page(df):
     # REQUIRED COLUMNS
     # =============================================================================================
 
-    required_columns = [
-        "stays_in_weekend_nights",
-        "stays_in_week_nights"
-    ]
-
-    missing_columns = [
-        col for col in required_columns
-        if col not in data.columns
-    ]
-
-    if missing_columns:
-
+    if "stay_duration" not in data.columns:
         st.error(
-            "❌ Required stay-duration columns are missing: "
-            + ", ".join(missing_columns)
+            "❌ The required 'stay_duration' column is not available in the prepared dataset."
         )
-
         return
+
+    data["stay_duration"] = pd.to_numeric(
+        data["stay_duration"],
+        errors="coerce"
+    )
+
+    data = data.dropna(
+        subset=["stay_duration"]
+    ).copy()
+
+    data["stay_duration"] = data["stay_duration"].clip(lower=0)
 
     # =============================================================================================
     # DATA PREPARATION
@@ -5033,8 +5031,8 @@ def render_stay_duration_analysis_page(df):
     )
 
     # Remove impossible negative stays
-    prepared_df["total_stay_nights"] = prepared_df[
-        "total_stay_nights"
+    df["stay_duration"] = data[
+        "stay_duration"
     ].clip(lower=0)
 
     # =============================================================================================
@@ -5078,7 +5076,7 @@ def render_stay_duration_analysis_page(df):
     data["estimated_revenue"] = (
         data["adr"].fillna(0)
         *
-        data["total_stay_nights"]
+        data["stay_duration"]
     )
 
     # =============================================================================================
@@ -5086,7 +5084,7 @@ def render_stay_duration_analysis_page(df):
     # =============================================================================================
 
     data["Stay Group"] = pd.cut(
-        data["total_stay_nights"],
+        data["stay_duration"],
         bins=[
             0,
             1,
@@ -5110,23 +5108,23 @@ def render_stay_duration_analysis_page(df):
     # =============================================================================================
 
     average_stay = data[
-        "total_stay_nights"
+        "stay_duration"
     ].mean()
 
     median_stay = data[
-        "total_stay_nights"
+        "stay_duration"
     ].median()
 
     maximum_stay = data[
-        "total_stay_nights"
+        "stay_duration"
     ].max()
 
     minimum_stay = data[
-        "total_stay_nights"
+        "stay_duration"
     ].min()
 
     long_stay_bookings = (
-        (data["total_stay_nights"] >= 8).sum()
+        (data["stay_duration"] >= 8).sum()
     )
 
     long_stay_percentage = (
@@ -5202,15 +5200,15 @@ def render_stay_duration_analysis_page(df):
 
     fig = px.histogram(
         data,
-        x="total_stay_nights",
+        x="stay_duration",
         nbins=30,
         labels={
-            "total_stay_nights": "Total Stay (Nights)"
+            "stay_duration": "Stay Duration (Nights)"
         }
     )
 
     fig.update_layout(
-        xaxis_title="Total Stay (Nights)",
+        xaxis_title="Stay Duration (Nights)",
         yaxis_title="Number of Bookings"
     )
 
@@ -5236,13 +5234,13 @@ def render_stay_duration_analysis_page(df):
             fig = px.box(
                 data,
                 x="hotel",
-                y="total_stay_nights",
+                y="stay_duration",
                 points=False
             )
 
             fig.update_layout(
                 xaxis_title="Hotel",
-                yaxis_title="Total Stay (Nights)"
+                yaxis_title="Stay Duration (Nights)"
             )
 
             st.plotly_chart(
@@ -5321,7 +5319,7 @@ def render_stay_duration_analysis_page(df):
             customer_stay = (
                 data.groupby(
                     "customer_type"
-                )["total_stay_nights"]
+                )["stay_duration"]
                 .mean()
                 .reset_index()
             )
@@ -5329,8 +5327,8 @@ def render_stay_duration_analysis_page(df):
             fig = px.bar(
                 customer_stay,
                 x="customer_type",
-                y="total_stay_nights",
-                text="total_stay_nights"
+                y="stay_duration",
+                text="stay_duration"
             )
 
             fig.update_traces(
@@ -5369,7 +5367,7 @@ def render_stay_duration_analysis_page(df):
             segment_stay = (
                 data.groupby(
                     "market_segment"
-                )["total_stay_nights"]
+                )["stay_duration"]
                 .mean()
                 .reset_index()
             )
@@ -5377,8 +5375,8 @@ def render_stay_duration_analysis_page(df):
             fig = px.bar(
                 segment_stay,
                 x="market_segment",
-                y="total_stay_nights",
-                text="total_stay_nights"
+                y="stay_duration",
+                text="stay_duration"
             )
 
             fig.update_traces(
@@ -5418,14 +5416,14 @@ def render_stay_duration_analysis_page(df):
 
         fig = px.scatter(
             adr_data,
-            x="total_stay_nights",
+            x="stay_duration",
             y="adr",
             opacity=0.35,
             trendline="ols"
         )
 
         fig.update_layout(
-            xaxis_title="Total Stay (Nights)",
+            xaxis_title="Stay Duration (Nights)",
             yaxis_title="ADR"
         )
 
@@ -5454,7 +5452,7 @@ def render_stay_duration_analysis_page(df):
             observed=True
         )
         .agg(
-            Bookings=("total_stay_nights", "size"),
+            Bookings=("stay_duration", "size"),
             Cancellation_Rate=("is_canceled", "mean"),
             Average_ADR=("adr", "mean"),
             Estimated_Revenue=("estimated_revenue", "sum")
