@@ -5658,5 +5658,5 @@ elif selected_page == "❌ Cancellation Analysis":
 elif selected_page == "⏳ Lead Time Analysis":
     render_lead_time_analysis_page(prepared_df)
 
-elif selected_page == "🛏️ Stay Duration Analysis":
+elif selected_page == "🛏️ Stay Duration":
     render_stay_duration_analysis_page(prepared_df)
