@@ -752,6 +752,687 @@ def render_executive_overview_page(df):
         "<h2 style='text-align: center;font-size: 30px; color: white; font-weight: 700;'>📊 Executive Overview</h2>",
         unsafe_allow_html=True,
     )
+# Work with a copy so the original prepared dataset
+    # is never modified by this page.
+    data = df.copy()
+
+    # --------------------------------------------------------
+    # CREATE REQUIRED CALCULATED COLUMNS
+    # --------------------------------------------------------
+
+    # Total stay duration
+    if (
+        "stays_in_weekend_nights" in data.columns
+        and "stays_in_week_nights" in data.columns
+    ):
+        data["total_stay_nights"] = (
+            pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+            +
+            pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+        )
+
+    else:
+        data["total_stay_nights"] = 0
+
+    # Estimated revenue
+    if "adr" in data.columns:
+        data["estimated_revenue"] = (
+            pd.to_numeric(
+                data["adr"],
+                errors="coerce"
+            ).fillna(0)
+            *
+            data["total_stay_nights"]
+        )
+    else:
+        data["estimated_revenue"] = 0
+
+    # --------------------------------------------------------
+    # MONTH ORDER
+    # --------------------------------------------------------
+
+    month_order = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ]
+
+    # --------------------------------------------------------
+    # PAGE HEADER
+    # --------------------------------------------------------
+
+    st.markdown(
+        """
+        <div style="
+            padding: 10px 0 20px 0;
+        ">
+            <h1 style="
+                margin-bottom: 5px;
+                font-size: 32px;
+                font-weight: 700;
+            ">
+                📊 Executive Overview
+            </h1>
+
+            <p style="
+                color: #9ca3af;
+                font-size: 15px;
+                margin-top: 0;
+            ">
+                High-level overview of hotel booking performance,
+                demand, cancellations and revenue.
+            </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # BASIC VALUES
+    # --------------------------------------------------------
+
+    total_bookings = len(data)
+
+    if "is_canceled" in data.columns:
+
+        canceled_bookings = int(
+            pd.to_numeric(
+                data["is_canceled"],
+                errors="coerce"
+            ).fillna(0).sum()
+        )
+
+        confirmed_bookings = (
+            total_bookings - canceled_bookings
+        )
+
+    else:
+
+        canceled_bookings = 0
+        confirmed_bookings = total_bookings
+
+    cancellation_rate = (
+        canceled_bookings / total_bookings * 100
+        if total_bookings > 0
+        else 0
+    )
+
+    # Average ADR
+    average_adr = (
+        pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        ).mean()
+        if "adr" in data.columns
+        else 0
+    )
+
+    # Average lead time
+    average_lead_time = (
+        pd.to_numeric(
+            data["lead_time"],
+            errors="coerce"
+        ).mean()
+        if "lead_time" in data.columns
+        else 0
+    )
+
+    # Average stay
+    average_stay = (
+        data["total_stay_nights"].mean()
+        if len(data) > 0
+        else 0
+    )
+
+    # Revenue
+    total_revenue = data["estimated_revenue"].sum()
+
+    # Revenue lost from cancellations
+    if "is_canceled" in data.columns:
+
+        cancelled_revenue = data.loc[
+            pd.to_numeric(
+                data["is_canceled"],
+                errors="coerce"
+            ).fillna(0) == 1,
+            "estimated_revenue"
+        ].sum()
+
+    else:
+
+        cancelled_revenue = 0
+
+    # --------------------------------------------------------
+    # KPI CARDS
+    # --------------------------------------------------------
+
+    st.markdown("### 📌 Key Performance Indicators")
+
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+    with kpi1:
+        st.metric(
+            "Total Bookings",
+            f"{total_bookings:,}"
+        )
+
+    with kpi2:
+        st.metric(
+            "Confirmed Bookings",
+            f"{confirmed_bookings:,}"
+        )
+
+    with kpi3:
+        st.metric(
+            "Cancelled Bookings",
+            f"{canceled_bookings:,}"
+        )
+
+    with kpi4:
+        st.metric(
+            "Cancellation Rate",
+            f"{cancellation_rate:.1f}%"
+        )
+
+    kpi5, kpi6, kpi7, kpi8 = st.columns(4)
+
+    with kpi5:
+        st.metric(
+            "Average ADR",
+            f"{average_adr:,.2f}"
+        )
+
+    with kpi6:
+        st.metric(
+            "Average Lead Time",
+            f"{average_lead_time:,.1f} days"
+        )
+
+    with kpi7:
+        st.metric(
+            "Average Stay",
+            f"{average_stay:,.1f} nights"
+        )
+
+    with kpi8:
+        st.metric(
+            "Estimated Revenue",
+            f"{total_revenue:,.0f}"
+        )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # ROW 1 — HOTEL + MONTHLY BOOKINGS
+    # --------------------------------------------------------
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # BOOKINGS BY HOTEL
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown("### 🏨 Bookings by Hotel")
+
+        if "hotel" in data.columns:
+
+            hotel_counts = (
+                data["hotel"]
+                .value_counts()
+                .reset_index()
+            )
+
+            hotel_counts.columns = [
+                "Hotel",
+                "Bookings"
+            ]
+
+            fig_hotel = px.pie(
+                hotel_counts,
+                names="Hotel",
+                values="Bookings",
+                hole=0.55
+            )
+
+            fig_hotel.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                legend_title=""
+            )
+
+            st.plotly_chart(
+                fig_hotel,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel column is not available."
+            )
+
+    # --------------------------------------------------------
+    # MONTHLY BOOKINGS
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown("### 📅 Monthly Bookings")
+
+        if (
+            "arrival_date_month" in data.columns
+        ):
+
+            monthly = (
+                data["arrival_date_month"]
+                .value_counts()
+                .reindex(
+                    month_order,
+                    fill_value=0
+                )
+                .reset_index()
+            )
+
+            monthly.columns = [
+                "Month",
+                "Bookings"
+            ]
+
+            fig_month = px.line(
+                monthly,
+                x="Month",
+                y="Bookings",
+                markers=True
+            )
+
+            fig_month.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Bookings"
+            )
+
+            st.plotly_chart(
+                fig_month,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Arrival month column is not available."
+            )
+
+    # --------------------------------------------------------
+    # ROW 2 — CANCELLATION + ADR
+    # --------------------------------------------------------
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # MONTHLY CANCELLATION RATE
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown("### ❌ Monthly Cancellation Rate")
+
+        if (
+            "arrival_date_month" in data.columns
+            and "is_canceled" in data.columns
+        ):
+
+            cancellation_month = (
+                data.groupby(
+                    "arrival_date_month"
+                )["is_canceled"]
+                .mean()
+                .reindex(month_order)
+                .fillna(0)
+                .reset_index()
+            )
+
+            cancellation_month.columns = [
+                "Month",
+                "Cancellation Rate"
+            ]
+
+            cancellation_month[
+                "Cancellation Rate"
+            ] *= 100
+
+            fig_cancel = px.line(
+                cancellation_month,
+                x="Month",
+                y="Cancellation Rate",
+                markers=True
+            )
+
+            fig_cancel.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig_cancel,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Cancellation or month data is unavailable."
+            )
+
+    # --------------------------------------------------------
+    # MONTHLY ADR
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown("### 💰 Average ADR by Month")
+
+        if (
+            "arrival_date_month" in data.columns
+            and "adr" in data.columns
+        ):
+
+            monthly_adr = (
+                data.groupby(
+                    "arrival_date_month"
+                )["adr"]
+                .mean()
+                .reindex(month_order)
+                .reset_index()
+            )
+
+            monthly_adr.columns = [
+                "Month",
+                "Average ADR"
+            ]
+
+            fig_adr = px.line(
+                monthly_adr,
+                x="Month",
+                y="Average ADR",
+                markers=True
+            )
+
+            fig_adr.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Average ADR"
+            )
+
+            st.plotly_chart(
+                fig_adr,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "ADR or month data is unavailable."
+            )
+
+    # --------------------------------------------------------
+    # ROW 3 — MARKET SEGMENT
+    # --------------------------------------------------------
+
+    st.markdown("### 📢 Booking Distribution")
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # MARKET SEGMENT
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown("#### Market Segment")
+
+        if "market_segment" in data.columns:
+
+            market_counts = (
+                data["market_segment"]
+                .value_counts()
+                .reset_index()
+            )
+
+            market_counts.columns = [
+                "Market Segment",
+                "Bookings"
+            ]
+
+            fig_market = px.bar(
+                market_counts,
+                x="Bookings",
+                y="Market Segment",
+                orientation="h"
+            )
+
+            fig_market.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="Bookings",
+                yaxis_title=""
+            )
+
+            st.plotly_chart(
+                fig_market,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment data is unavailable."
+            )
+
+    # --------------------------------------------------------
+    # CUSTOMER TYPE
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown("#### Customer Type")
+
+        if "customer_type" in data.columns:
+
+            customer_counts = (
+                data["customer_type"]
+                .value_counts()
+                .reset_index()
+            )
+
+            customer_counts.columns = [
+                "Customer Type",
+                "Bookings"
+            ]
+
+            fig_customer = px.bar(
+                customer_counts,
+                x="Bookings",
+                y="Customer Type",
+                orientation="h"
+            )
+
+            fig_customer.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="Bookings",
+                yaxis_title=""
+            )
+
+            st.plotly_chart(
+                fig_customer,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type data is unavailable."
+            )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # AUTOMATIC EXECUTIVE INSIGHTS
+    # --------------------------------------------------------
+
+    st.markdown("### 📌 Executive Insights")
+
+    insights = []
+
+    # Hotel insight
+    if "hotel" in data.columns:
+
+        hotel_counts = data["hotel"].value_counts()
+
+        if len(hotel_counts) > 0:
+
+            top_hotel = hotel_counts.index[0]
+            top_hotel_share = (
+                hotel_counts.iloc[0]
+                / total_bookings
+                * 100
+            )
+
+            insights.append(
+                f"🏨 **{top_hotel}** accounts for "
+                f"approximately **{top_hotel_share:.1f}%** "
+                f"of all bookings."
+            )
+
+    # Cancellation insight
+    insights.append(
+        f"❌ The overall cancellation rate is "
+        f"**{cancellation_rate:.1f}%**, with "
+        f"**{canceled_bookings:,}** bookings cancelled."
+    )
+
+    # ADR insight
+    if "adr" in data.columns:
+
+        highest_adr = data["adr"].max()
+
+        insights.append(
+            f"💰 The average daily rate (ADR) is "
+            f"**{average_adr:,.2f}**, while the "
+            f"maximum recorded ADR is "
+            f"**{highest_adr:,.2f}**."
+        )
+
+    # Lead time insight
+    if "lead_time" in data.columns:
+
+        insights.append(
+            f"⏳ Guests book an average of "
+            f"**{average_lead_time:.1f} days** "
+            f"in advance."
+        )
+
+    for insight in insights[:4]:
+
+        st.info(insight)
+
+    # --------------------------------------------------------
+    # RECOMMENDATIONS
+    # --------------------------------------------------------
+
+    st.markdown("### 💡 Executive Recommendations")
+
+    recommendations = []
+
+    if cancellation_rate >= 30:
+
+        recommendations.append(
+            "❌ Cancellation risk is relatively high. "
+            "Consider stronger cancellation policies, "
+            "deposit requirements and booking reminders."
+        )
+
+    else:
+
+        recommendations.append(
+            "❌ Maintain current cancellation controls while "
+            "monitoring high-risk booking segments."
+        )
+
+    if average_lead_time > 60:
+
+        recommendations.append(
+            "⏳ A high average lead time suggests an opportunity "
+            "for early-booking incentives combined with "
+            "appropriate cancellation policies."
+        )
+
+    else:
+
+        recommendations.append(
+            "⏳ Encourage advance bookings through early-bird "
+            "offers to improve demand visibility."
+        )
+
+    recommendations.append(
+        "💰 Use monthly demand and ADR patterns to support "
+        "dynamic pricing during high- and low-demand periods."
+    )
+
+    recommendations.append(
+        "🏨 Compare hotel-level cancellation and revenue "
+        "performance regularly to allocate pricing and "
+        "marketing efforts effectively."
+    )
+
+    for recommendation in recommendations[:4]:
+
+        st.success(recommendation)
 
 #===========================================================================================================================================================================================================
 #page routing based on selected page
