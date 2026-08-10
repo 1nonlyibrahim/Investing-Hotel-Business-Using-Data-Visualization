@@ -741,6 +741,25 @@ with st.sidebar:
             """
         )
 
+#===========================================================================================================================================================================================================
+# EXECUTIVE OVERVIEW PAGE
+#===========================================================================================================================================================================================================
 
+def render_executive_overview_page(df):
+    st.markdown(
+        "<h2 style='text-align: center; color: white; font-weight: 700;'>📊 Executive Overview</h2>",
+        unsafe_allow_html=True,
+    )
+    st.markdown(
+        """
+        <div style="text-align:center; max-width:800px; font-size:15px; margin:auto;">
+        <p style="font-size:17px; color:#bdbdbd; line-height:1.7;">
+        The Executive Overview provides a high-level summary of key metrics and insights derived from the hotel booking dataset.
+        It includes visualizations and statistics that help stakeholders quickly understand booking trends, cancellation rates, revenue performance, and customer behavior.
+        </p>
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
 # PAGE ROUTING
