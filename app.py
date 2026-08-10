@@ -2922,40 +2922,38 @@ def render_booking_trends_page(df):
     # --------------------------------------------------------
     # MONTHLY REVENUE
     # --------------------------------------------------------
+    if all(col in prepared_df.columns for col in [
+                "adr",
+                "stays_in_weekend_nights",
+                "stays_in_week_nights"
+            ]):
 
+                prepared_df["adr"] = pd.to_numeric(
+                    prepared_df["adr"],
+                    errors="coerce"
+                ).fillna(0)
+
+                prepared_df["stays_in_weekend_nights"] = pd.to_numeric(
+                    prepared_df["stays_in_weekend_nights"],
+                    errors="coerce"
+                ).fillna(0)
+
+                prepared_df["stays_in_week_nights"] = pd.to_numeric(
+                    prepared_df["stays_in_week_nights"],
+                    errors="coerce"
+                ).fillna(0)
+
+                prepared_df["total_stay_nights"] = (
+                    prepared_df["stays_in_weekend_nights"]
+                    + prepared_df["stays_in_week_nights"]
+                )
+
+                prepared_df["estimated_revenue"] = (
+                    prepared_df["adr"]
+                    * prepared_df["total_stay_nights"]
+                )
     with col1:
         # Create Estimated Revenue
-        if all(col in prepared_df.columns for col in [
-            "adr",
-            "stays_in_weekend_nights",
-            "stays_in_week_nights"
-        ]):
-
-            prepared_df["adr"] = pd.to_numeric(
-                prepared_df["adr"],
-                errors="coerce"
-            ).fillna(0)
-
-            prepared_df["stays_in_weekend_nights"] = pd.to_numeric(
-                prepared_df["stays_in_weekend_nights"],
-                errors="coerce"
-            ).fillna(0)
-
-            prepared_df["stays_in_week_nights"] = pd.to_numeric(
-                prepared_df["stays_in_week_nights"],
-                errors="coerce"
-            ).fillna(0)
-
-            prepared_df["total_stay_nights"] = (
-                prepared_df["stays_in_weekend_nights"]
-                + prepared_df["stays_in_week_nights"]
-            )
-
-            prepared_df["estimated_revenue"] = (
-                prepared_df["adr"]
-                * prepared_df["total_stay_nights"]
-            )
-
         st.markdown(
             "<h3 style='color: white; font-weight: bold;'>💵 Monthly Estimated Revenue</h3>",
             unsafe_allow_html=True
