@@ -4990,50 +4990,47 @@ def render_stay_duration_analysis_page(df):
     )
 
     # =============================================================================================
-    # REQUIRED COLUMNS
+    # REQUIRED COLUMNS / DATA PREPARATION
     # =============================================================================================
 
-    if "stay_duration" not in data.columns:
-        st.error(
-            "❌ The required 'stay_duration' column is not available in the prepared dataset."
+    if "stay_duration" in data.columns:
+
+        data["stay_duration"] = pd.to_numeric(
+            data["stay_duration"],
+            errors="coerce"
         )
-        return
 
-    data["stay_duration"] = pd.to_numeric(
-        data["stay_duration"],
-        errors="coerce"
-    )
+    else:
 
-    data = data.dropna(
-        subset=["stay_duration"]
-    ).copy()
+        if all(
+            col in data.columns
+            for col in [
+                "stays_in_weekend_nights",
+                "stays_in_week_nights"
+            ]
+        ):
 
+            data["stays_in_weekend_nights"] = pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["stays_in_week_nights"] = pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["stay_duration"] = (
+                data["stays_in_weekend_nights"]
+                + data["stays_in_week_nights"]
+            )
+
+        else:
+
+            data["stay_duration"] = 0
+
+    data["stay_duration"] = data["stay_duration"].fillna(0)
     data["stay_duration"] = data["stay_duration"].clip(lower=0)
-
-    # =============================================================================================
-    # DATA PREPARATION
-    # =============================================================================================
-
-    data["stays_in_weekend_nights"] = pd.to_numeric(
-        data["stays_in_weekend_nights"],
-        errors="coerce"
-    ).fillna(0)
-
-    data["stays_in_week_nights"] = pd.to_numeric(
-        data["stays_in_week_nights"],
-        errors="coerce"
-    ).fillna(0)
-
-        # Create Stay Duration
-    prepared_df["stay_duration"] = (
-        prepared_df["stays_in_weekend_nights"]
-        + prepared_df["stays_in_week_nights"]
-    )
-
-    # Remove impossible negative stays
-    df["stay_duration"] = data[
-        "stay_duration"
-    ].clip(lower=0)
 
     # =============================================================================================
     # CANCELLATION
