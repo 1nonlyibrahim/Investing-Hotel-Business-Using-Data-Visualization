@@ -579,6 +579,21 @@ if uploaded_file is not None:
 # SIDEBAR — NAVIGATION + PREPARED DATASET INFORMATION
 #=========================================================================================================================================================================================================
 
+st.markdown(
+    """
+    <style>
+    [data-testid="stSidebar"] {
+        overflow-y: auto !important;
+        max-height: 100vh !important;
+    }
+    [data-testid="stSidebarContent"] {
+        overflow-y: auto !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
 with st.sidebar:
 
     # --------------------------------------------------------
