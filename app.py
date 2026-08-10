@@ -1474,9 +1474,983 @@ def render_executive_overview_page(df):
 
         st.success(recommendation)
 
+        #===========================================================================================================================================================================================================
+# HOTEL PERFORMANCE PAGE
+#===========================================================================================================================================================================================================
+
+def render_hotel_performance_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    # Work with a copy so the original prepared dataset
+    # is never modified by this page.
+    data = df.copy()
+
+    # --------------------------------------------------------
+    # CREATE REQUIRED CALCULATED COLUMNS
+    # --------------------------------------------------------
+
+    # Total stay duration
+    if (
+        "stays_in_weekend_nights" in data.columns
+        and "stays_in_week_nights" in data.columns
+    ):
+        data["total_stay_nights"] = (
+            pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+            +
+            pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+        )
+
+    else:
+        data["total_stay_nights"] = 0
+
+    # Estimated revenue
+    if "adr" in data.columns:
+
+        data["estimated_revenue"] = (
+            pd.to_numeric(
+                data["adr"],
+                errors="coerce"
+            ).fillna(0)
+            *
+            data["total_stay_nights"]
+        )
+
+    else:
+
+        data["estimated_revenue"] = 0
+
+    # --------------------------------------------------------
+    # PAGE HEADER / TEXT STYLE
+    # --------------------------------------------------------
+
+    st.markdown(
+        """
+        <style>
+        html, body, [class*="st-"] {
+            color: white !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: white !important;
+            font-weight: normal !important;
+        }
+
+        .stAlert, .stInfo, .stSuccess, .stWarning {
+            color: white !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<h2 style='color: white; font-weight: bold;text-align: center;font-size: 40px; margin-bottom: 0.25rem;'>Hotel Performance</h2>"
+        "<p style='color: white; font-weight: normal; margin-top: 0;'>Comparison of City Hotel and Resort Hotel performance across bookings, pricing, cancellations and revenue.</p>",
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # CHECK HOTEL COLUMN
+    # --------------------------------------------------------
+
+    if "hotel" not in data.columns:
+
+        st.warning(
+            "⚠️ Hotel column is not available in the prepared dataset."
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # BASIC HOTEL VALUES
+    # --------------------------------------------------------
+
+    hotel_counts = data["hotel"].value_counts()
+
+    total_bookings = len(data)
+
+    city_bookings = int(
+        hotel_counts.get("City Hotel", 0)
+    )
+
+    resort_bookings = int(
+        hotel_counts.get("Resort Hotel", 0)
+    )
+
+    city_share = (
+        city_bookings / total_bookings * 100
+        if total_bookings > 0
+        else 0
+    )
+
+    resort_share = (
+        resort_bookings / total_bookings * 100
+        if total_bookings > 0
+        else 0
+    )
+
+    # --------------------------------------------------------
+    # CANCELLATION RATE
+    # --------------------------------------------------------
+
+    if "is_canceled" in data.columns:
+
+        data["is_canceled"] = pd.to_numeric(
+            data["is_canceled"],
+            errors="coerce"
+        ).fillna(0)
+
+        city_cancel_rate = (
+            data.loc[
+                data["hotel"] == "City Hotel",
+                "is_canceled"
+            ].mean() * 100
+            if city_bookings > 0
+            else 0
+        )
+
+        resort_cancel_rate = (
+            data.loc[
+                data["hotel"] == "Resort Hotel",
+                "is_canceled"
+            ].mean() * 100
+            if resort_bookings > 0
+            else 0
+        )
+
+    else:
+
+        city_cancel_rate = 0
+        resort_cancel_rate = 0
+
+    # --------------------------------------------------------
+    # ADR
+    # --------------------------------------------------------
+
+    if "adr" in data.columns:
+
+        data["adr"] = pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        )
+
+        city_adr = (
+            data.loc[
+                data["hotel"] == "City Hotel",
+                "adr"
+            ].mean()
+            if city_bookings > 0
+            else 0
+        )
+
+        resort_adr = (
+            data.loc[
+                data["hotel"] == "Resort Hotel",
+                "adr"
+            ].mean()
+            if resort_bookings > 0
+            else 0
+        )
+
+    else:
+
+        city_adr = 0
+        resort_adr = 0
+
+    # --------------------------------------------------------
+    # LEAD TIME
+    # --------------------------------------------------------
+
+    if "lead_time" in data.columns:
+
+        data["lead_time"] = pd.to_numeric(
+            data["lead_time"],
+            errors="coerce"
+        )
+
+        city_lead_time = (
+            data.loc[
+                data["hotel"] == "City Hotel",
+                "lead_time"
+            ].mean()
+            if city_bookings > 0
+            else 0
+        )
+
+        resort_lead_time = (
+            data.loc[
+                data["hotel"] == "Resort Hotel",
+                "lead_time"
+            ].mean()
+            if resort_bookings > 0
+            else 0
+        )
+
+    else:
+
+        city_lead_time = 0
+        resort_lead_time = 0
+
+    # --------------------------------------------------------
+    # AVERAGE STAY
+    # --------------------------------------------------------
+
+    city_average_stay = (
+        data.loc[
+            data["hotel"] == "City Hotel",
+            "total_stay_nights"
+        ].mean()
+        if city_bookings > 0
+        else 0
+    )
+
+    resort_average_stay = (
+        data.loc[
+            data["hotel"] == "Resort Hotel",
+            "total_stay_nights"
+        ].mean()
+        if resort_bookings > 0
+        else 0
+    )
+
+    # --------------------------------------------------------
+    # ESTIMATED REVENUE
+    # --------------------------------------------------------
+
+    city_revenue = (
+        data.loc[
+            data["hotel"] == "City Hotel",
+            "estimated_revenue"
+        ].sum()
+    )
+
+    resort_revenue = (
+        data.loc[
+            data["hotel"] == "Resort Hotel",
+            "estimated_revenue"
+        ].sum()
+    )
+
+    # --------------------------------------------------------
+    # KPI SECTION
+    # --------------------------------------------------------
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold; margin-bottom: 0.5rem;'>📌 Hotel Performance KPIs</h3>",
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+
+    with kpi1:
+
+        st.metric(
+            "City Hotel Bookings",
+            f"{city_bookings:,}"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Resort Hotel Bookings",
+            f"{resort_bookings:,}"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "City Booking Share",
+            f"{city_share:.1f}%"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Resort Booking Share",
+            f"{resort_share:.1f}%"
+        )
+
+    kpi5, kpi6, kpi7, kpi8 = st.columns(4)
+
+    with kpi5:
+
+        st.metric(
+            "City Cancellation Rate",
+            f"{city_cancel_rate:.1f}%"
+        )
+
+    with kpi6:
+
+        st.metric(
+            "Resort Cancellation Rate",
+            f"{resort_cancel_rate:.1f}%"
+        )
+
+    with kpi7:
+
+        st.metric(
+            "City Average ADR",
+            f"{city_adr:,.2f}"
+        )
+
+    with kpi8:
+
+        st.metric(
+            "Resort Average ADR",
+            f"{resort_adr:,.2f}"
+        )
+
+    st.divider()
+
+    # --------------------------------------------------------
+    # SECOND KPI ROW
+    # --------------------------------------------------------
+
+    kpi9, kpi10, kpi11, kpi12 = st.columns(4)
+
+    with kpi9:
+
+        st.metric(
+            "City Average Lead Time",
+            f"{city_lead_time:,.1f} days"
+        )
+
+    with kpi10:
+
+        st.metric(
+            "Resort Average Lead Time",
+            f"{resort_lead_time:,.1f} days"
+        )
+
+    with kpi11:
+
+        st.metric(
+            "City Average Stay",
+            f"{city_average_stay:,.1f} nights"
+        )
+
+    with kpi12:
+
+        st.metric(
+            "Resort Average Stay",
+            f"{resort_average_stay:,.1f} nights"
+        )
+
+    # --------------------------------------------------------
+    # REVENUE KPI
+    # --------------------------------------------------------
+
+    kpi13, kpi14 = st.columns(2)
+
+    with kpi13:
+
+        st.metric(
+            "City Estimated Revenue",
+            f"{city_revenue:,.0f}"
+        )
+
+    with kpi14:
+
+        st.metric(
+            "Resort Estimated Revenue",
+            f"{resort_revenue:,.0f}"
+        )
+
+    st.divider()
+
+    # ========================================================
+    # ROW 1 — BOOKING DISTRIBUTION + ADR
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # HOTEL BOOKING DISTRIBUTION
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>🏨 Hotel Booking Distribution</h3>",
+            unsafe_allow_html=True
+        )
+
+        hotel_distribution = (
+            data["hotel"]
+            .value_counts()
+            .reset_index()
+        )
+
+        hotel_distribution.columns = [
+            "Hotel",
+            "Bookings"
+        ]
+
+        fig_distribution = px.pie(
+            hotel_distribution,
+            names="Hotel",
+            values="Bookings",
+            hole=0.55
+        )
+
+        fig_distribution.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            legend_title=""
+        )
+
+        st.plotly_chart(
+            fig_distribution,
+            width="stretch"
+        )
+
+    # --------------------------------------------------------
+    # ADR COMPARISON
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>💰 ADR Comparison</h3>",
+            unsafe_allow_html=True
+        )
+
+        adr_comparison = pd.DataFrame({
+            "Hotel": [
+                "City Hotel",
+                "Resort Hotel"
+            ],
+            "Average ADR": [
+                city_adr,
+                resort_adr
+            ]
+        })
+
+        fig_adr = px.bar(
+            adr_comparison,
+            x="Hotel",
+            y="Average ADR",
+            text="Average ADR"
+        )
+
+        fig_adr.update_traces(
+            texttemplate="%{text:.2f}",
+            textposition="outside"
+        )
+
+        fig_adr.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Average ADR"
+        )
+
+        st.plotly_chart(
+            fig_adr,
+            width="stretch"
+        )
+
+    # ========================================================
+    # ROW 2 — CANCELLATION + LEAD TIME
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # CANCELLATION RATE
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>❌ Cancellation Rate Comparison</h3>",
+            unsafe_allow_html=True
+        )
+
+        cancellation_comparison = pd.DataFrame({
+            "Hotel": [
+                "City Hotel",
+                "Resort Hotel"
+            ],
+            "Cancellation Rate": [
+                city_cancel_rate,
+                resort_cancel_rate
+            ]
+        })
+
+        fig_cancel = px.bar(
+            cancellation_comparison,
+            x="Hotel",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig_cancel.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig_cancel.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig_cancel,
+            width="stretch"
+        )
+
+    # --------------------------------------------------------
+    # LEAD TIME COMPARISON
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>⏳ Average Lead Time</h3>",
+            unsafe_allow_html=True
+        )
+
+        lead_time_comparison = pd.DataFrame({
+            "Hotel": [
+                "City Hotel",
+                "Resort Hotel"
+            ],
+            "Average Lead Time": [
+                city_lead_time,
+                resort_lead_time
+            ]
+        })
+
+        fig_lead = px.bar(
+            lead_time_comparison,
+            x="Hotel",
+            y="Average Lead Time",
+            text="Average Lead Time"
+        )
+
+        fig_lead.update_traces(
+            texttemplate="%{text:.1f}",
+            textposition="outside"
+        )
+
+        fig_lead.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Days"
+        )
+
+        st.plotly_chart(
+            fig_lead,
+            width="stretch"
+        )
+
+    # ========================================================
+    # ROW 3 — STAY + REVENUE
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # AVERAGE STAY
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>🛏️ Average Stay Comparison</h3>",
+            unsafe_allow_html=True
+        )
+
+        stay_comparison = pd.DataFrame({
+            "Hotel": [
+                "City Hotel",
+                "Resort Hotel"
+            ],
+            "Average Stay": [
+                city_average_stay,
+                resort_average_stay
+            ]
+        })
+
+        fig_stay = px.bar(
+            stay_comparison,
+            x="Hotel",
+            y="Average Stay",
+            text="Average Stay"
+        )
+
+        fig_stay.update_traces(
+            texttemplate="%{text:.1f}",
+            textposition="outside"
+        )
+
+        fig_stay.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Nights"
+        )
+
+        st.plotly_chart(
+            fig_stay,
+            width="stretch"
+        )
+
+    # --------------------------------------------------------
+    # ESTIMATED REVENUE
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>💵 Estimated Revenue</h3>",
+            unsafe_allow_html=True
+        )
+
+        revenue_comparison = pd.DataFrame({
+            "Hotel": [
+                "City Hotel",
+                "Resort Hotel"
+            ],
+            "Estimated Revenue": [
+                city_revenue,
+                resort_revenue
+            ]
+        })
+
+        fig_revenue = px.bar(
+            revenue_comparison,
+            x="Hotel",
+            y="Estimated Revenue",
+            text="Estimated Revenue"
+        )
+
+        fig_revenue.update_traces(
+            texttemplate="%{text:,.0f}",
+            textposition="outside"
+        )
+
+        fig_revenue.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Estimated Revenue"
+        )
+
+        st.plotly_chart(
+            fig_revenue,
+            width="stretch"
+        )
+
+    st.divider()
+
+    # ========================================================
+    # MONTHLY HOTEL PERFORMANCE
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>📅 Monthly Hotel Performance</h3>",
+        unsafe_allow_html=True
+    )
+
+    month_order = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ]
+
+    if "arrival_date_month" in data.columns:
+
+        monthly_hotel = (
+            data.groupby(
+                [
+                    "arrival_date_month",
+                    "hotel"
+                ]
+            )
+            .size()
+            .reset_index(
+                name="Bookings"
+            )
+        )
+
+        monthly_hotel[
+            "arrival_date_month"
+        ] = pd.Categorical(
+            monthly_hotel[
+                "arrival_date_month"
+            ],
+            categories=month_order,
+            ordered=True
+        )
+
+        monthly_hotel = monthly_hotel.sort_values(
+            "arrival_date_month"
+        )
+
+        fig_monthly = px.line(
+            monthly_hotel,
+            x="arrival_date_month",
+            y="Bookings",
+            color="hotel",
+            markers=True
+        )
+
+        fig_monthly.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Bookings",
+            legend_title="Hotel"
+        )
+
+        st.plotly_chart(
+            fig_monthly,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Arrival month column is not available."
+        )
+
+    st.divider()
+
+    # ========================================================
+    # HOTEL PERFORMANCE INSIGHTS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>📌 Hotel Performance Insights</h3>",
+        unsafe_allow_html=True
+    )
+
+    insights = []
+
+    # Booking volume insight
+    if city_bookings > resort_bookings:
+
+        insights.append(
+            f"🏨 **City Hotel** receives the larger booking volume "
+            f"with **{city_bookings:,} bookings**, compared with "
+            f"**{resort_bookings:,}** for Resort Hotel."
+        )
+
+    elif resort_bookings > city_bookings:
+
+        insights.append(
+            f"🏨 **Resort Hotel** receives the larger booking volume "
+            f"with **{resort_bookings:,} bookings**, compared with "
+            f"**{city_bookings:,}** for City Hotel."
+        )
+
+    # ADR insight
+    if city_adr > resort_adr:
+
+        insights.append(
+            f"💰 **City Hotel** has the higher average ADR at "
+            f"**{city_adr:,.2f}**, compared with "
+            f"**{resort_adr:,.2f}** for Resort Hotel."
+        )
+
+    elif resort_adr > city_adr:
+
+        insights.append(
+            f"💰 **Resort Hotel** has the higher average ADR at "
+            f"**{resort_adr:,.2f}**, compared with "
+            f"**{city_adr:,.2f}** for City Hotel."
+        )
+
+    # Cancellation insight
+    if city_cancel_rate > resort_cancel_rate:
+
+        insights.append(
+            f"❌ **City Hotel** has the higher cancellation rate "
+            f"at **{city_cancel_rate:.1f}%**, indicating greater "
+            f"cancellation exposure."
+        )
+
+    elif resort_cancel_rate > city_cancel_rate:
+
+        insights.append(
+            f"❌ **Resort Hotel** has the higher cancellation rate "
+            f"at **{resort_cancel_rate:.1f}%**, indicating greater "
+            f"cancellation exposure."
+        )
+
+    # Stay insight
+    if city_average_stay > resort_average_stay:
+
+        insights.append(
+            f"🛏️ Guests stay longer at **City Hotel**, averaging "
+            f"**{city_average_stay:.1f} nights** compared with "
+            f"**{resort_average_stay:.1f} nights** at Resort Hotel."
+        )
+
+    elif resort_average_stay > city_average_stay:
+
+        insights.append(
+            f"🛏️ Guests stay longer at **Resort Hotel**, averaging "
+            f"**{resort_average_stay:.1f} nights** compared with "
+            f"**{city_average_stay:.1f} nights** at City Hotel."
+        )
+
+    # Revenue insight
+    if city_revenue > resort_revenue:
+
+        insights.append(
+            f"💵 **City Hotel** generates the higher estimated revenue "
+            f"of **{city_revenue:,.0f}**."
+        )
+
+    elif resort_revenue > city_revenue:
+
+        insights.append(
+            f"💵 **Resort Hotel** generates the higher estimated revenue "
+            f"of **{resort_revenue:,.0f}**."
+        )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # ========================================================
+    # HOTEL-SPECIFIC RECOMMENDATIONS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>💡 Hotel-Specific Recommendations</h3>",
+        unsafe_allow_html=True
+    )
+
+    recommendations = []
+
+    # Cancellation recommendation
+    if city_cancel_rate > resort_cancel_rate:
+
+        recommendations.append(
+            "❌ City Hotel should focus on reducing cancellation "
+            "exposure through stronger cancellation policies, "
+            "deposit requirements and booking reminders."
+        )
+
+    elif resort_cancel_rate > city_cancel_rate:
+
+        recommendations.append(
+            "❌ Resort Hotel should focus on reducing cancellation "
+            "exposure through stronger cancellation policies, "
+            "deposit requirements and booking reminders."
+        )
+
+    # ADR recommendation
+    if city_adr > resort_adr:
+
+        recommendations.append(
+            "💰 Resort Hotel can evaluate premium pricing, "
+            "package offerings and value-added services to "
+            "improve its ADR."
+        )
+
+    elif resort_adr > city_adr:
+
+        recommendations.append(
+            "💰 City Hotel can evaluate premium pricing and "
+            "value-added packages to improve its ADR."
+        )
+
+    # Stay recommendation
+    if resort_average_stay > city_average_stay:
+
+        recommendations.append(
+            "🛏️ Resort Hotel can develop extended-stay and "
+            "family packages to further encourage longer visits."
+        )
+
+    else:
+
+        recommendations.append(
+            "🛏️ City Hotel can explore extended-stay packages "
+            "to increase average length of stay."
+        )
+
+    # General recommendation
+    recommendations.append(
+        "📊 Monitor hotel-level booking volume, ADR and "
+        "cancellation rates regularly to optimize pricing, "
+        "marketing and inventory decisions."
+    )
+
+    for recommendation in recommendations[:4]:
+
+        st.success(recommendation)
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
 
 if selected_page == "📊 Executive Overview":
     render_executive_overview_page(prepared_df)
+
+elif selected_page == "🏨 Hotel Performance":
+    render_hotel_performance_page(prepared_df)
