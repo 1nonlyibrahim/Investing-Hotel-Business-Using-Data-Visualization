@@ -2445,6 +2445,871 @@ def render_hotel_performance_page(df):
 
         st.success(recommendation)
 
+        #===========================================================================================================================================================================================================
+# BOOKING TRENDS PAGE
+#===========================================================================================================================================================================================================
+
+def render_booking_trends_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    # --------------------------------------------------------
+    # WORKING COPY
+    # --------------------------------------------------------
+
+    data = df.copy()
+
+    # --------------------------------------------------------
+    # PAGE STYLE
+    # --------------------------------------------------------
+
+    st.markdown(
+        """
+        <style>
+        html, body, [class*="st-"] {
+            color: white !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: white !important;
+            font-weight: normal !important;
+        }
+
+        .stAlert, .stInfo, .stSuccess, .stWarning {
+            color: white !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # PAGE HEADER
+    # --------------------------------------------------------
+
+    st.markdown(
+        "<h2 style='color: white; font-weight: bold; text-align: center; font-size: 40px; margin-bottom: 0.25rem;'>Booking Trends</h2>"
+        "<p style='color: white; font-weight: normal; margin-top: 0;'>Analysis of booking demand, arrival patterns, seasonality, cancellations and pricing trends.</p>",
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # MONTH ORDER
+    # --------------------------------------------------------
+
+    month_order = [
+        "January",
+        "February",
+        "March",
+        "April",
+        "May",
+        "June",
+        "July",
+        "August",
+        "September",
+        "October",
+        "November",
+        "December"
+    ]
+
+    # --------------------------------------------------------
+    # REQUIRED COLUMNS CHECK
+    # --------------------------------------------------------
+
+    if "arrival_date_month" not in data.columns:
+
+        st.warning(
+            "⚠️ Arrival month information is not available in the prepared dataset."
+        )
+
+        return
+
+    # --------------------------------------------------------
+    # CLEAN MONTH COLUMN
+    # --------------------------------------------------------
+
+    data["arrival_date_month"] = pd.Categorical(
+        data["arrival_date_month"],
+        categories=month_order,
+        ordered=True
+    )
+
+    # ========================================================
+    # PREPARE BOOKING DATA
+    # ========================================================
+
+    monthly_bookings = (
+        data.groupby(
+            "arrival_date_month",
+            observed=True
+        )
+        .size()
+        .reset_index(
+            name="Bookings"
+        )
+    )
+
+    # --------------------------------------------------------
+    # PEAK / LOW MONTH
+    # --------------------------------------------------------
+
+    if not monthly_bookings.empty:
+
+        peak_month_row = monthly_bookings.loc[
+            monthly_bookings["Bookings"].idxmax()
+        ]
+
+        lowest_month_row = monthly_bookings.loc[
+            monthly_bookings["Bookings"].idxmin()
+        ]
+
+        peak_booking_month = peak_month_row["arrival_date_month"]
+
+        lowest_booking_month = lowest_month_row["arrival_date_month"]
+
+        peak_booking_count = int(
+            peak_month_row["Bookings"]
+        )
+
+        lowest_booking_count = int(
+            lowest_month_row["Bookings"]
+        )
+
+        average_monthly_bookings = (
+            monthly_bookings["Bookings"].mean()
+        )
+
+    else:
+
+        peak_booking_month = "N/A"
+        lowest_booking_month = "N/A"
+        peak_booking_count = 0
+        lowest_booking_count = 0
+        average_monthly_bookings = 0
+
+    # ========================================================
+    # PEAK ARRIVAL MONTH
+    # ========================================================
+
+    peak_arrival_month = peak_booking_month
+
+    # ========================================================
+    # PEAK SEASON
+    # ========================================================
+
+    season_mapping = {
+        "December": "Winter",
+        "January": "Winter",
+        "February": "Winter",
+        "March": "Spring",
+        "April": "Spring",
+        "May": "Spring",
+        "June": "Summer",
+        "July": "Summer",
+        "August": "Summer",
+        "September": "Autumn",
+        "October": "Autumn",
+        "November": "Autumn"
+    }
+
+    season_data = data.copy()
+
+    season_data["Season"] = (
+        season_data["arrival_date_month"]
+        .astype(str)
+        .map(season_mapping)
+    )
+
+    seasonal_bookings = (
+        season_data["Season"]
+        .value_counts()
+    )
+
+    if not seasonal_bookings.empty:
+
+        peak_season = seasonal_bookings.idxmax()
+
+    else:
+
+        peak_season = "N/A"
+
+    # ========================================================
+    # KPI SECTION
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold; margin-bottom: 0.5rem;'>📌 Booking Trend KPIs</h3>",
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+
+    with kpi1:
+
+        st.metric(
+            "Peak Booking Month",
+            str(peak_booking_month)
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Lowest Booking Month",
+            str(lowest_booking_month)
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Peak Arrival Month",
+            str(peak_arrival_month)
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Avg Monthly Bookings",
+            f"{average_monthly_bookings:,.0f}"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Peak Booking Season",
+            str(peak_season)
+        )
+
+    st.divider()
+
+    # ========================================================
+    # ROW 1 — MONTHLY BOOKINGS + HOTEL BOOKINGS
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # MONTHLY BOOKINGS
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>📅 Monthly Bookings</h3>",
+            unsafe_allow_html=True
+        )
+
+        fig_monthly_bookings = px.line(
+            monthly_bookings,
+            x="arrival_date_month",
+            y="Bookings",
+            markers=True
+        )
+
+        fig_monthly_bookings.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="",
+            yaxis_title="Bookings"
+        )
+
+        st.plotly_chart(
+            fig_monthly_bookings,
+            width="stretch"
+        )
+
+    # --------------------------------------------------------
+    # MONTHLY BOOKINGS BY HOTEL
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>🏨 Monthly Bookings by Hotel</h3>",
+            unsafe_allow_html=True
+        )
+
+        if "hotel" in data.columns:
+
+            monthly_hotel = (
+                data.groupby(
+                    [
+                        "arrival_date_month",
+                        "hotel"
+                    ],
+                    observed=True
+                )
+                .size()
+                .reset_index(
+                    name="Bookings"
+                )
+            )
+
+            fig_hotel = px.line(
+                monthly_hotel,
+                x="arrival_date_month",
+                y="Bookings",
+                color="hotel",
+                markers=True
+            )
+
+            fig_hotel.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Bookings",
+                legend_title="Hotel"
+            )
+
+            st.plotly_chart(
+                fig_hotel,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel information is not available."
+            )
+
+    # ========================================================
+    # ROW 2 — CANCELLATION + ADR
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # MONTHLY CANCELLATION RATE
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>❌ Monthly Cancellation Rate</h3>",
+            unsafe_allow_html=True
+        )
+
+        if "is_canceled" in data.columns:
+
+            data["is_canceled"] = pd.to_numeric(
+                data["is_canceled"],
+                errors="coerce"
+            ).fillna(0)
+
+            monthly_cancellation = (
+                data.groupby(
+                    "arrival_date_month",
+                    observed=True
+                )["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            monthly_cancellation["Cancellation Rate"] = (
+                monthly_cancellation["is_canceled"] * 100
+            )
+
+            fig_cancellation = px.line(
+                monthly_cancellation,
+                x="arrival_date_month",
+                y="Cancellation Rate",
+                markers=True
+            )
+
+            fig_cancellation.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig_cancellation,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Cancellation information is not available."
+            )
+
+    # --------------------------------------------------------
+    # MONTHLY ADR
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>💰 Monthly ADR</h3>",
+            unsafe_allow_html=True
+        )
+
+        if "adr" in data.columns:
+
+            data["adr"] = pd.to_numeric(
+                data["adr"],
+                errors="coerce"
+            )
+
+            monthly_adr = (
+                data.groupby(
+                    "arrival_date_month",
+                    observed=True
+                )["adr"]
+                .mean()
+                .reset_index()
+            )
+
+            fig_adr = px.line(
+                monthly_adr,
+                x="arrival_date_month",
+                y="adr",
+                markers=True
+            )
+
+            fig_adr.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Average ADR"
+            )
+
+            st.plotly_chart(
+                fig_adr,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "ADR information is not available."
+            )
+
+    # ========================================================
+    # ROW 3 — MONTHLY REVENUE + ARRIVAL DAY
+    # ========================================================
+
+    col1, col2 = st.columns(2)
+
+    # --------------------------------------------------------
+    # MONTHLY REVENUE
+    # --------------------------------------------------------
+
+    with col1:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>💵 Monthly Estimated Revenue</h3>",
+            unsafe_allow_html=True
+        )
+
+        if (
+            "adr" in data.columns
+            and
+            "stays_in_weekend_nights" in data.columns
+            and
+            "stays_in_week_nights" in data.columns
+        ):
+
+            data["stays_in_weekend_nights"] = pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["stays_in_week_nights"] = pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["estimated_revenue"] = (
+                data["adr"].fillna(0)
+                *
+                (
+                    data["stays_in_weekend_nights"]
+                    +
+                    data["stays_in_week_nights"]
+                )
+            )
+
+            monthly_revenue = (
+                data.groupby(
+                    "arrival_date_month",
+                    observed=True
+                )["estimated_revenue"]
+                .sum()
+                .reset_index()
+            )
+
+            fig_revenue = px.line(
+                monthly_revenue,
+                x="arrival_date_month",
+                y="estimated_revenue",
+                markers=True
+            )
+
+            fig_revenue.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="",
+                yaxis_title="Estimated Revenue"
+            )
+
+            st.plotly_chart(
+                fig_revenue,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Required revenue columns are not available."
+            )
+
+    # --------------------------------------------------------
+    # BOOKINGS BY ARRIVAL DAY
+    # --------------------------------------------------------
+
+    with col2:
+
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>📆 Bookings by Arrival Day</h3>",
+            unsafe_allow_html=True
+        )
+
+        if "arrival_date_day_of_month" in data.columns:
+
+            arrival_day = (
+                data["arrival_date_day_of_month"]
+                .value_counts()
+                .sort_index()
+                .reset_index()
+            )
+
+            arrival_day.columns = [
+                "Arrival Day",
+                "Bookings"
+            ]
+
+            fig_arrival_day = px.bar(
+                arrival_day,
+                x="Arrival Day",
+                y="Bookings"
+            )
+
+            fig_arrival_day.update_layout(
+                margin=dict(
+                    l=10,
+                    r=10,
+                    t=20,
+                    b=10
+                ),
+                xaxis_title="Day of Month",
+                yaxis_title="Bookings"
+            )
+
+            st.plotly_chart(
+                fig_arrival_day,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Arrival day information is not available."
+            )
+
+    # ========================================================
+    # WEEK NUMBER ANALYSIS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>📊 Bookings by Week Number</h3>",
+        unsafe_allow_html=True
+    )
+
+    # --------------------------------------------------------
+    # CREATE WEEK NUMBER
+    # --------------------------------------------------------
+
+    if "arrival_date_week_number" in data.columns:
+
+        weekly_bookings = (
+            data.groupby(
+                "arrival_date_week_number"
+            )
+            .size()
+            .reset_index(
+                name="Bookings"
+            )
+            .sort_values(
+                "arrival_date_week_number"
+            )
+        )
+
+        fig_week = px.line(
+            weekly_bookings,
+            x="arrival_date_week_number",
+            y="Bookings",
+            markers=True
+        )
+
+        fig_week.update_layout(
+            margin=dict(
+                l=10,
+                r=10,
+                t=20,
+                b=10
+            ),
+            xaxis_title="Week Number",
+            yaxis_title="Bookings"
+        )
+
+        st.plotly_chart(
+            fig_week,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Arrival week number information is not available."
+        )
+
+    st.divider()
+
+    # ========================================================
+    # SEASONALITY ANALYSIS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>🌦️ Seasonal Demand</h3>",
+        unsafe_allow_html=True
+    )
+
+    seasonal_chart = (
+        season_data.groupby(
+            "Season"
+        )
+        .size()
+        .reset_index(
+            name="Bookings"
+        )
+    )
+
+    season_order = [
+        "Winter",
+        "Spring",
+        "Summer",
+        "Autumn"
+    ]
+
+    seasonal_chart["Season"] = pd.Categorical(
+        seasonal_chart["Season"],
+        categories=season_order,
+        ordered=True
+    )
+
+    seasonal_chart = seasonal_chart.sort_values(
+        "Season"
+    )
+
+    fig_season = px.bar(
+        seasonal_chart,
+        x="Season",
+        y="Bookings",
+        text="Bookings"
+    )
+
+    fig_season.update_traces(
+        texttemplate="%{text:,}",
+        textposition="outside"
+    )
+
+    fig_season.update_layout(
+        margin=dict(
+            l=10,
+            r=10,
+            t=20,
+            b=10
+        ),
+        xaxis_title="",
+        yaxis_title="Bookings"
+    )
+
+    st.plotly_chart(
+        fig_season,
+        width="stretch"
+    )
+
+    st.divider()
+
+    # ========================================================
+    # BOOKING TREND INSIGHTS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>📌 Booking Trend Insights</h3>",
+        unsafe_allow_html=True
+    )
+
+    insights = []
+
+    # Peak month
+    if peak_booking_month != "N/A":
+
+        insights.append(
+            f"📈 **{peak_booking_month}** records the highest "
+            f"booking demand with **{peak_booking_count:,} bookings**."
+        )
+
+    # Lowest month
+    if lowest_booking_month != "N/A":
+
+        insights.append(
+            f"📉 **{lowest_booking_month}** has the lowest booking "
+            f"demand with **{lowest_booking_count:,} bookings**."
+        )
+
+    # Seasonal insight
+    if peak_season != "N/A":
+
+        insights.append(
+            f"🌦️ **{peak_season}** is the strongest booking season "
+            f"based on total arrival demand."
+        )
+
+    # Cancellation insight
+    if (
+        "is_canceled" in data.columns
+        and "arrival_date_month" in data.columns
+    ):
+
+        highest_cancel_row = monthly_cancellation.loc[
+            monthly_cancellation["Cancellation Rate"].idxmax()
+        ]
+
+        highest_cancel_month = (
+            highest_cancel_row["arrival_date_month"]
+        )
+
+        highest_cancel_rate = (
+            highest_cancel_row["Cancellation Rate"]
+        )
+
+        insights.append(
+            f"❌ **{highest_cancel_month}** has the highest monthly "
+            f"cancellation rate at **{highest_cancel_rate:.1f}%**."
+        )
+
+    # ADR insight
+    if "adr" in data.columns:
+
+        highest_adr_row = monthly_adr.loc[
+            monthly_adr["adr"].idxmax()
+        ]
+
+        highest_adr_month = (
+            highest_adr_row["arrival_date_month"]
+        )
+
+        highest_adr_value = (
+            highest_adr_row["adr"]
+        )
+
+        insights.append(
+            f"💰 Average ADR reaches its highest level in "
+            f"**{highest_adr_month}** at **{highest_adr_value:,.2f}**."
+        )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # ========================================================
+    # RECOMMENDATIONS
+    # ========================================================
+
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>💡 Booking Trend Recommendations</h3>",
+        unsafe_allow_html=True
+    )
+
+    recommendations = []
+
+    # Peak season recommendation
+    if peak_booking_month != "N/A":
+
+        recommendations.append(
+            f"📈 Increase room availability, pricing flexibility "
+            f"and inventory planning around peak demand periods "
+            f"such as **{peak_booking_month}**."
+        )
+
+    # Low season recommendation
+    if lowest_booking_month != "N/A":
+
+        recommendations.append(
+            f"📉 Use targeted promotions, packages and discounts "
+            f"during weaker demand periods such as "
+            f"**{lowest_booking_month}**."
+        )
+
+    # Cancellation recommendation
+    if (
+        "is_canceled" in data.columns
+        and not monthly_cancellation.empty
+    ):
+
+        recommendations.append(
+            "❌ Monitor months with unusually high cancellation "
+            "rates and consider stronger cancellation policies "
+            "or deposit requirements during those periods."
+        )
+
+    # Pricing recommendation
+    if "adr" in data.columns:
+
+        recommendations.append(
+            "💰 Adjust ADR according to seasonal demand by "
+            "increasing prices during strong demand periods "
+            "and using promotional pricing during weaker periods."
+        )
+
+    for recommendation in recommendations[:4]:
+
+        st.success(recommendation)
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -2454,3 +3319,6 @@ if selected_page == "📊 Executive Overview":
 
 elif selected_page == "🏨 Hotel Performance":
     render_hotel_performance_page(prepared_df)
+
+elif selected_page == "📈 Booking Trends":
+    render_booking_trends_page(prepared_df)
