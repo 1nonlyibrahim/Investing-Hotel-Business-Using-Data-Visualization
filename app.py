@@ -4252,6 +4252,704 @@ def render_cancellation_analysis_page(df):
             recommendation
         )
 
+# =================================================================================================
+# ⏳ LEAD TIME ANALYSIS PAGE
+# =================================================================================================
+
+def render_lead_time_analysis_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    data = df.copy()
+
+    # =============================================================================================
+    # PAGE HEADER
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h2 style="
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 0.25rem;
+        ">
+            ⏳ Lead Time Analysis
+        </h2>
+
+        <p style="
+            color: white;
+            margin-top: 0;
+        ">
+            Analyze how far in advance customers book their stays and whether
+            longer lead times are associated with higher cancellation risk.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # =============================================================================================
+    # REQUIRED COLUMN
+    # =============================================================================================
+
+    if "lead_time" not in data.columns:
+        st.error(
+            "❌ The required column 'lead_time' is not available in the prepared dataset."
+        )
+        return
+
+    # =============================================================================================
+    # DATA PREPARATION
+    # =============================================================================================
+
+    data["lead_time"] = pd.to_numeric(
+        data["lead_time"],
+        errors="coerce"
+    )
+
+    data = data.dropna(
+        subset=["lead_time"]
+    ).copy()
+
+    data["lead_time"] = data["lead_time"].clip(lower=0)
+
+    # =============================================================================================
+    # CANCELLATION COLUMN
+    # =============================================================================================
+
+    if "is_canceled" in data.columns:
+
+        data["is_canceled"] = pd.to_numeric(
+            data["is_canceled"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["is_canceled"] = data["is_canceled"].astype(int)
+
+    else:
+
+        data["is_canceled"] = 0
+
+    # =============================================================================================
+    # ADR
+    # =============================================================================================
+
+    if "adr" in data.columns:
+
+        data["adr"] = pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        )
+
+    # =============================================================================================
+    # STAY NIGHTS
+    # =============================================================================================
+
+    if all(
+        col in data.columns
+        for col in [
+            "stays_in_weekend_nights",
+            "stays_in_week_nights"
+        ]
+    ):
+
+        data["stays_in_weekend_nights"] = pd.to_numeric(
+            data["stays_in_weekend_nights"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["stays_in_week_nights"] = pd.to_numeric(
+            data["stays_in_week_nights"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["total_stay_nights"] = (
+            data["stays_in_weekend_nights"]
+            +
+            data["stays_in_week_nights"]
+        )
+
+    else:
+
+        data["total_stay_nights"] = 0
+
+    # =============================================================================================
+    # ESTIMATED REVENUE
+    # =============================================================================================
+
+    if "adr" in data.columns:
+
+        data["estimated_revenue"] = (
+            data["adr"].fillna(0)
+            *
+            data["total_stay_nights"]
+        )
+
+    else:
+
+        data["estimated_revenue"] = 0
+
+    # =============================================================================================
+    # LEAD TIME GROUPS
+    # =============================================================================================
+
+    data["Lead Time Group"] = pd.cut(
+        data["lead_time"],
+        bins=[
+            -1,
+            7,
+            30,
+            60,
+            90,
+            180,
+            float("inf")
+        ],
+        labels=[
+            "0–7 days",
+            "8–30 days",
+            "31–60 days",
+            "61–90 days",
+            "91–180 days",
+            "180+ days"
+        ],
+        include_lowest=True
+    )
+
+    # =============================================================================================
+    # KPIs
+    # =============================================================================================
+
+    average_lead_time = data["lead_time"].mean()
+    median_lead_time = data["lead_time"].median()
+    maximum_lead_time = data["lead_time"].max()
+    minimum_lead_time = data["lead_time"].min()
+
+    cancellation_rate = (
+        data["is_canceled"].mean() * 100
+        if len(data) > 0
+        else 0
+    )
+
+    # =============================================================================================
+    # KPI DISPLAY
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h3 style="color: white; font-weight: bold;">
+            📌 Lead Time KPIs
+        </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi4, kpi5 = st.columns(2)
+
+    with kpi1:
+
+        st.metric(
+            "Average Lead Time",
+            f"{average_lead_time:.1f} days"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Median Lead Time",
+            f"{median_lead_time:.1f} days"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Maximum Lead Time",
+            f"{maximum_lead_time:,.0f} days"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Minimum Lead Time",
+            f"{minimum_lead_time:,.0f} days"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Cancellation Rate",
+            f"{cancellation_rate:.2f}%"
+        )
+
+    st.divider()
+
+    # =============================================================================================
+    # LEAD TIME DISTRIBUTION
+    # =============================================================================================
+
+    st.markdown(
+        "### 📊 Lead Time Distribution"
+    )
+
+    fig = px.histogram(
+        data,
+        x="lead_time",
+        nbins=40,
+        labels={
+            "lead_time": "Lead Time (Days)"
+        }
+    )
+
+    fig.update_layout(
+        xaxis_title="Lead Time (Days)",
+        yaxis_title="Number of Bookings"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # LEAD TIME BY HOTEL
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 🏨 Lead Time by Hotel"
+        )
+
+        if "hotel" in data.columns:
+
+            fig = px.box(
+                data,
+                x="hotel",
+                y="lead_time",
+                points=False
+            )
+
+            fig.update_layout(
+                xaxis_title="Hotel",
+                yaxis_title="Lead Time (Days)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel column is not available."
+            )
+
+    # =============================================================================================
+    # LEAD TIME VS CANCELLATION
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### ❌ Lead Time vs Cancellation"
+        )
+
+        lead_cancel = (
+            data.groupby(
+                "Lead Time Group",
+                observed=True
+            )
+            .agg(
+                Bookings=("is_canceled", "size"),
+                Cancellation_Rate=("is_canceled", "mean")
+            )
+            .reset_index()
+        )
+
+        lead_cancel["Cancellation Rate"] = (
+            lead_cancel["Cancellation_Rate"] * 100
+        )
+
+        fig = px.bar(
+            lead_cancel,
+            x="Lead Time Group",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Lead Time Group",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    # =============================================================================================
+    # LEAD TIME BY MARKET SEGMENT
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 📢 Lead Time by Market Segment"
+        )
+
+        if "market_segment" in data.columns:
+
+            segment_lead = (
+                data.groupby(
+                    "market_segment"
+                )["lead_time"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                segment_lead,
+                x="market_segment",
+                y="lead_time",
+                text="lead_time"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Average Lead Time (Days)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment column is not available."
+            )
+
+    # =============================================================================================
+    # LEAD TIME BY CUSTOMER TYPE
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 👥 Lead Time by Customer Type"
+        )
+
+        if "customer_type" in data.columns:
+
+            customer_lead = (
+                data.groupby(
+                    "customer_type"
+                )["lead_time"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                customer_lead,
+                x="customer_type",
+                y="lead_time",
+                text="lead_time"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Average Lead Time (Days)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type column is not available."
+            )
+
+    # =============================================================================================
+    # LEAD TIME VS ADR
+    # =============================================================================================
+
+    st.markdown(
+        "### 💰 Lead Time vs ADR"
+    )
+
+    if "adr" in data.columns:
+
+        adr_data = data[
+            data["adr"].notna()
+        ].copy()
+
+        # Limit extreme ADR values only for visualization
+        if not adr_data.empty:
+
+            fig = px.scatter(
+                adr_data,
+                x="lead_time",
+                y="adr",
+                opacity=0.35,
+                trendline="ols"
+            )
+
+            fig.update_layout(
+                xaxis_title="Lead Time (Days)",
+                yaxis_title="ADR"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+    else:
+
+        st.info(
+            "ADR column is not available."
+        )
+
+    # =============================================================================================
+    # LEAD TIME GROUP SUMMARY
+    # =============================================================================================
+
+    st.markdown(
+        "### 📋 Lead-Time Group Performance"
+    )
+
+    group_summary = (
+        data.groupby(
+            "Lead Time Group",
+            observed=True
+        )
+        .agg(
+            Bookings=("lead_time", "size"),
+            Cancellation_Rate=("is_canceled", "mean"),
+            Average_ADR=("adr", "mean"),
+            Estimated_Revenue=("estimated_revenue", "sum")
+        )
+        .reset_index()
+    )
+
+    group_summary["Cancellation Rate"] = (
+        group_summary["Cancellation_Rate"] * 100
+    )
+
+    group_summary = group_summary.drop(
+        columns=["Cancellation_Rate"]
+    )
+
+    group_summary["Average ADR"] = (
+        group_summary["Average_ADR"].round(2)
+    )
+
+    group_summary["Estimated Revenue"] = (
+        group_summary["Estimated_Revenue"].round(2)
+    )
+
+    group_summary = group_summary.drop(
+        columns=["Average_ADR", "Estimated_Revenue"]
+    )
+
+    st.dataframe(
+        group_summary,
+        width="stretch",
+        hide_index=True
+    )
+
+    # =============================================================================================
+    # LEAD TIME GROUP BOOKING VOLUME
+    # =============================================================================================
+
+    st.markdown(
+        "### 📦 Bookings by Lead-Time Group"
+    )
+
+    booking_groups = (
+        data.groupby(
+            "Lead Time Group",
+            observed=True
+        )
+        .size()
+        .reset_index(
+            name="Bookings"
+        )
+    )
+
+    fig = px.bar(
+        booking_groups,
+        x="Lead Time Group",
+        y="Bookings",
+        text="Bookings"
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:,}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        xaxis_title="Lead Time Group",
+        yaxis_title="Bookings"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # DYNAMIC INSIGHTS
+    # =============================================================================================
+
+    st.divider()
+
+    st.markdown(
+        "### 📌 Key Lead-Time Insights"
+    )
+
+    insights = []
+
+    # Highest cancellation group
+    lead_rates = (
+        data.groupby(
+            "Lead Time Group",
+            observed=True
+        )["is_canceled"]
+        .mean()
+        .mul(100)
+    )
+
+    if not lead_rates.empty:
+
+        highest_cancel_group = lead_rates.idxmax()
+        highest_cancel_rate = lead_rates.max()
+
+        insights.append(
+            f"❌ **{highest_cancel_group}** has the highest cancellation "
+            f"rate at **{highest_cancel_rate:.1f}%**."
+        )
+
+    # Average lead time
+    insights.append(
+        f"⏳ Customers book an average of **{average_lead_time:.1f} days** "
+        f"before their arrival."
+    )
+
+    # Median vs average
+    if average_lead_time > median_lead_time:
+
+        insights.append(
+            "📊 The average lead time is higher than the median, "
+            "indicating that some bookings are made far in advance."
+        )
+
+    # Long booking risk
+    long_lead = data[
+        data["lead_time"] > 180
+    ]
+
+    short_lead = data[
+        data["lead_time"] <= 30
+    ]
+
+    if not long_lead.empty and not short_lead.empty:
+
+        long_cancel = (
+            long_lead["is_canceled"].mean() * 100
+        )
+
+        short_cancel = (
+            short_lead["is_canceled"].mean() * 100
+        )
+
+        if long_cancel > short_cancel:
+
+            insights.append(
+                f"⚠️ Bookings made more than **180 days in advance** "
+                f"have a higher cancellation rate "
+                f"(**{long_cancel:.1f}%**) than bookings made within "
+                f"30 days (**{short_cancel:.1f}%**)."
+            )
+
+        else:
+
+            insights.append(
+                f"✅ Long-lead bookings do not show a higher cancellation "
+                f"rate than short-lead bookings in the current dataset."
+            )
+
+    # Highest volume group
+    volume = (
+        data.groupby(
+            "Lead Time Group",
+            observed=True
+        ).size()
+    )
+
+    if not volume.empty:
+
+        highest_volume_group = volume.idxmax()
+
+        insights.append(
+            f"📦 The **{highest_volume_group}** group contains the "
+            f"largest number of bookings."
+        )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # =============================================================================================
+    # RECOMMENDATIONS
+    # =============================================================================================
+
+    st.markdown(
+        "### 💡 Business Recommendations"
+    )
+
+    recommendations = [
+        "🎯 Monitor long-lead-time bookings closely when they demonstrate higher cancellation risk.",
+        "💳 Consider deposit or stricter cancellation policies for high-risk advance bookings.",
+        "📧 Send automated confirmation and reminder messages well before arrival.",
+        "💰 Use lead-time patterns to support dynamic pricing and early-booking promotions.",
+        "📊 Compare lead-time behavior across market segments and customer types when allocating marketing resources."
+    ]
+
+    for recommendation in recommendations:
+
+        st.success(
+            recommendation
+        )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -4267,3 +4965,6 @@ elif selected_page == "📅 Booking Trends":
 
 elif selected_page == "❌ Cancellation Analysis":
     render_cancellation_analysis_page(prepared_df)
+
+elif selected_page == "⏳ Lead Time Analysis":
+    render_lead_time_analysis_page(prepared_df)
