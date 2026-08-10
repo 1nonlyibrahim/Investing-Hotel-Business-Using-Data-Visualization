@@ -479,7 +479,7 @@ if uploaded_file is not None:
         try:
             uploaded_file.seek(0)
             df = pd.read_csv(uploaded_file)
-            st.write("INITIAL DATASET SHAPE:", df.shape)
+            
         except Exception as e:
             st.session_state["preparation_running"] = False
             st.error(f"Unable to read the uploaded CSV file.\n\n{e}")
@@ -557,10 +557,10 @@ if uploaded_file is not None:
             "remaining_missing_values": int(df.isna().sum().sum()),
             "remaining_duplicates": int(df.duplicated().sum()),
         }
-        st.write("DEBUG — df before prepared_df:", df.shape)
+    
         prepared_df = df.copy()
         st.session_state["prepared_df"] = prepared_df
-        st.write("DEBUG — prepared_df:", prepared_df.shape)
+
         render_prep_status(
             status_text,
             "✅ Dataset preparation complete",
