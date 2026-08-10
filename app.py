@@ -3320,5 +3320,5 @@ if selected_page == "📊 Executive Overview":
 elif selected_page == "🏨 Hotel Performance":
     render_hotel_performance_page(prepared_df)
 
-elif selected_page == "📈 Booking Trends":
+elif selected_page == "📅 Booking Trends":
     render_booking_trends_page(prepared_df)
