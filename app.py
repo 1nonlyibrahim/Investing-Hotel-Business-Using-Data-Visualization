@@ -5635,7 +5635,7 @@ def render_stay_duration_analysis_page(df):
 # ============================================================
 # CREATE STAY DURATION
 # ============================================================
-
+prepared_df = df.copy()
 # Make sure both source columns are numeric
 df["stays_in_weekend_nights"] = pd.to_numeric(
     df["stays_in_weekend_nights"],
