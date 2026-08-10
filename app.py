@@ -4950,6 +4950,695 @@ def render_lead_time_analysis_page(df):
             recommendation
         )
 
+# =================================================================================================
+# 🛏️ STAY DURATION ANALYSIS PAGE
+# =================================================================================================
+
+def render_stay_duration_analysis_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    data = df.copy()
+
+    # =============================================================================================
+    # PAGE HEADER
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h2 style="
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 0.25rem;
+        ">
+            🛏️ Stay Duration Analysis
+        </h2>
+
+        <p style="
+            color: white;
+            margin-top: 0;
+        ">
+            Analyze how long guests stay, how stay duration differs across
+            customer groups, and its relationship with cancellations and ADR.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # =============================================================================================
+    # REQUIRED COLUMNS
+    # =============================================================================================
+
+    required_columns = [
+        "stays_in_weekend_nights",
+        "stays_in_week_nights"
+    ]
+
+    missing_columns = [
+        col for col in required_columns
+        if col not in data.columns
+    ]
+
+    if missing_columns:
+
+        st.error(
+            "❌ Required stay-duration columns are missing: "
+            + ", ".join(missing_columns)
+        )
+
+        return
+
+    # =============================================================================================
+    # DATA PREPARATION
+    # =============================================================================================
+
+    data["stays_in_weekend_nights"] = pd.to_numeric(
+        data["stays_in_weekend_nights"],
+        errors="coerce"
+    ).fillna(0)
+
+    data["stays_in_week_nights"] = pd.to_numeric(
+        data["stays_in_week_nights"],
+        errors="coerce"
+    ).fillna(0)
+
+    # Create total stay duration
+    data["total_stay_nights"] = (
+        data["stays_in_weekend_nights"]
+        +
+        data["stays_in_week_nights"]
+    )
+
+    # Remove impossible negative stays
+    data["total_stay_nights"] = data[
+        "total_stay_nights"
+    ].clip(lower=0)
+
+    # =============================================================================================
+    # CANCELLATION
+    # =============================================================================================
+
+    if "is_canceled" in data.columns:
+
+        data["is_canceled"] = pd.to_numeric(
+            data["is_canceled"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["is_canceled"] = data[
+            "is_canceled"
+        ].astype(int)
+
+    else:
+
+        data["is_canceled"] = 0
+
+    # =============================================================================================
+    # ADR
+    # =============================================================================================
+
+    if "adr" in data.columns:
+
+        data["adr"] = pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        )
+
+    else:
+
+        data["adr"] = 0
+
+    # =============================================================================================
+    # ESTIMATED REVENUE
+    # =============================================================================================
+
+    data["estimated_revenue"] = (
+        data["adr"].fillna(0)
+        *
+        data["total_stay_nights"]
+    )
+
+    # =============================================================================================
+    # STAY GROUPS
+    # =============================================================================================
+
+    data["Stay Group"] = pd.cut(
+        data["total_stay_nights"],
+        bins=[
+            0,
+            1,
+            3,
+            7,
+            14,
+            float("inf")
+        ],
+        labels=[
+            "1 night",
+            "2–3 nights",
+            "4–7 nights",
+            "8–14 nights",
+            "15+ nights"
+        ],
+        include_lowest=True
+    )
+
+    # =============================================================================================
+    # KPIs
+    # =============================================================================================
+
+    average_stay = data[
+        "total_stay_nights"
+    ].mean()
+
+    median_stay = data[
+        "total_stay_nights"
+    ].median()
+
+    maximum_stay = data[
+        "total_stay_nights"
+    ].max()
+
+    minimum_stay = data[
+        "total_stay_nights"
+    ].min()
+
+    long_stay_bookings = (
+        (data["total_stay_nights"] >= 8).sum()
+    )
+
+    long_stay_percentage = (
+        long_stay_bookings
+        /
+        len(data)
+        *
+        100
+        if len(data) > 0
+        else 0
+    )
+
+    # =============================================================================================
+    # KPI DISPLAY
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h3 style="color: white; font-weight: bold;">
+            📌 Stay Duration KPIs
+        </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi4, kpi5 = st.columns(2)
+
+    with kpi1:
+
+        st.metric(
+            "Average Stay",
+            f"{average_stay:.1f} nights"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Median Stay",
+            f"{median_stay:.1f} nights"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Maximum Stay",
+            f"{maximum_stay:,.0f} nights"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Minimum Stay",
+            f"{minimum_stay:,.0f} nights"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Long-Stay Booking %",
+            f"{long_stay_percentage:.2f}%"
+        )
+
+    st.divider()
+
+    # =============================================================================================
+    # STAY DURATION DISTRIBUTION
+    # =============================================================================================
+
+    st.markdown(
+        "### 📊 Stay Duration Distribution"
+    )
+
+    fig = px.histogram(
+        data,
+        x="total_stay_nights",
+        nbins=30,
+        labels={
+            "total_stay_nights": "Total Stay (Nights)"
+        }
+    )
+
+    fig.update_layout(
+        xaxis_title="Total Stay (Nights)",
+        yaxis_title="Number of Bookings"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # STAY DURATION BY HOTEL
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 🏨 Stay Duration by Hotel"
+        )
+
+        if "hotel" in data.columns:
+
+            fig = px.box(
+                data,
+                x="hotel",
+                y="total_stay_nights",
+                points=False
+            )
+
+            fig.update_layout(
+                xaxis_title="Hotel",
+                yaxis_title="Total Stay (Nights)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel column is not available."
+            )
+
+    # =============================================================================================
+    # STAY DURATION VS CANCELLATION
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### ❌ Stay Duration vs Cancellation"
+        )
+
+        stay_cancel = (
+            data.groupby(
+                "Stay Group",
+                observed=True
+            )
+            .agg(
+                Bookings=("is_canceled", "size"),
+                Cancellation_Rate=("is_canceled", "mean")
+            )
+            .reset_index()
+        )
+
+        stay_cancel["Cancellation Rate"] = (
+            stay_cancel["Cancellation_Rate"] * 100
+        )
+
+        fig = px.bar(
+            stay_cancel,
+            x="Stay Group",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Stay Duration",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    # =============================================================================================
+    # STAY DURATION BY CUSTOMER TYPE
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 👥 Stay Duration by Customer Type"
+        )
+
+        if "customer_type" in data.columns:
+
+            customer_stay = (
+                data.groupby(
+                    "customer_type"
+                )["total_stay_nights"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                customer_stay,
+                x="customer_type",
+                y="total_stay_nights",
+                text="total_stay_nights"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Average Stay (Nights)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type column is not available."
+            )
+
+    # =============================================================================================
+    # STAY DURATION BY MARKET SEGMENT
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 📢 Stay Duration by Market Segment"
+        )
+
+        if "market_segment" in data.columns:
+
+            segment_stay = (
+                data.groupby(
+                    "market_segment"
+                )["total_stay_nights"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                segment_stay,
+                x="market_segment",
+                y="total_stay_nights",
+                text="total_stay_nights"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Average Stay (Nights)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment column is not available."
+            )
+
+    # =============================================================================================
+    # STAY DURATION VS ADR
+    # =============================================================================================
+
+    st.markdown(
+        "### 💰 Stay Duration vs ADR"
+    )
+
+    adr_data = data[
+        data["adr"].notna()
+    ].copy()
+
+    if not adr_data.empty:
+
+        fig = px.scatter(
+            adr_data,
+            x="total_stay_nights",
+            y="adr",
+            opacity=0.35,
+            trendline="ols"
+        )
+
+        fig.update_layout(
+            xaxis_title="Total Stay (Nights)",
+            yaxis_title="ADR"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "ADR data is not available."
+        )
+
+    # =============================================================================================
+    # STAY GROUP SUMMARY
+    # =============================================================================================
+
+    st.markdown(
+        "### 📋 Stay Group Performance"
+    )
+
+    stay_summary = (
+        data.groupby(
+            "Stay Group",
+            observed=True
+        )
+        .agg(
+            Bookings=("total_stay_nights", "size"),
+            Cancellation_Rate=("is_canceled", "mean"),
+            Average_ADR=("adr", "mean"),
+            Estimated_Revenue=("estimated_revenue", "sum")
+        )
+        .reset_index()
+    )
+
+    stay_summary["Cancellation Rate"] = (
+        stay_summary["Cancellation_Rate"] * 100
+    )
+
+    stay_summary["Average ADR"] = (
+        stay_summary["Average_ADR"].round(2)
+    )
+
+    stay_summary["Estimated Revenue"] = (
+        stay_summary["Estimated_Revenue"].round(2)
+    )
+
+    stay_summary = stay_summary.drop(
+        columns=[
+            "Cancellation_Rate",
+            "Average_ADR",
+            "Estimated_Revenue"
+        ],
+        errors="ignore"
+    )
+
+    st.dataframe(
+        stay_summary,
+        width="stretch",
+        hide_index=True
+    )
+
+    # =============================================================================================
+    # BOOKINGS BY STAY GROUP
+    # =============================================================================================
+
+    st.markdown(
+        "### 📦 Bookings by Stay Group"
+    )
+
+    booking_groups = (
+        data.groupby(
+            "Stay Group",
+            observed=True
+        )
+        .size()
+        .reset_index(
+            name="Bookings"
+        )
+    )
+
+    fig = px.bar(
+        booking_groups,
+        x="Stay Group",
+        y="Bookings",
+        text="Bookings"
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:,}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        xaxis_title="Stay Duration",
+        yaxis_title="Bookings"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # DYNAMIC INSIGHTS
+    # =============================================================================================
+
+    st.divider()
+
+    st.markdown(
+        "### 📌 Key Stay Duration Insights"
+    )
+
+    insights = []
+
+    # Most common stay group
+    stay_volume = (
+        data.groupby(
+            "Stay Group",
+            observed=True
+        ).size()
+    )
+
+    if not stay_volume.empty:
+
+        most_common_group = stay_volume.idxmax()
+        most_common_count = stay_volume.max()
+
+        insights.append(
+            f"📊 **{most_common_group}** is the most common stay "
+            f"duration, accounting for **{most_common_count:,} bookings**."
+        )
+
+    # Average stay
+    insights.append(
+        f"🛏️ Guests stay an average of **{average_stay:.1f} nights**."
+    )
+
+    # Highest cancellation group
+    stay_cancel_rates = (
+        data.groupby(
+            "Stay Group",
+            observed=True
+        )["is_canceled"]
+        .mean()
+        .mul(100)
+    )
+
+    if not stay_cancel_rates.empty:
+
+        highest_cancel_group = stay_cancel_rates.idxmax()
+        highest_cancel_rate = stay_cancel_rates.max()
+
+        insights.append(
+            f"❌ The **{highest_cancel_group}** group has the highest "
+            f"cancellation rate at **{highest_cancel_rate:.1f}%**."
+        )
+
+    # Highest ADR group
+    stay_adr = (
+        data.groupby(
+            "Stay Group",
+            observed=True
+        )["adr"]
+        .mean()
+    )
+
+    if not stay_adr.empty:
+
+        highest_adr_group = stay_adr.idxmax()
+        highest_adr = stay_adr.max()
+
+        insights.append(
+            f"💰 **{highest_adr_group}** has the highest average "
+            f"ADR at **{highest_adr:.2f}**."
+        )
+
+    # Long stay insight
+    if long_stay_percentage > 0:
+
+        insights.append(
+            f"📅 **{long_stay_percentage:.1f}%** of bookings are "
+            f"long-stay bookings of 8 nights or more."
+        )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # =============================================================================================
+    # BUSINESS RECOMMENDATIONS
+    # =============================================================================================
+
+    st.markdown(
+        "### 💡 Business Recommendations"
+    )
+
+    recommendations = [
+        "🎯 Monitor stay groups with unusually high cancellation rates and consider targeted cancellation policies.",
+        "🏨 Develop packages around the most common stay durations to improve conversion.",
+        "💰 Use stay-duration patterns alongside ADR to identify opportunities for longer-stay pricing strategies.",
+        "👨‍👩‍👧 Create family or extended-stay packages where longer stays are common.",
+        "📊 Monitor long-stay bookings because they can generate substantial estimated revenue but may also create greater cancellation exposure."
+    ]
+
+    for recommendation in recommendations:
+
+        st.success(
+            recommendation
+        )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -4968,3 +5657,6 @@ elif selected_page == "❌ Cancellation Analysis":
 
 elif selected_page == "⏳ Lead Time Analysis":
     render_lead_time_analysis_page(prepared_df)
+
+elif selected_page == "🛏️ Stay Duration Analysis":
+    render_stay_duration_analysis_page(prepared_df)
