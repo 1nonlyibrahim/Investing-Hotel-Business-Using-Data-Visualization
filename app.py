@@ -751,7 +751,7 @@ def render_executive_overview_page(df):
    if df is None or df.empty:
     st.info("📂 Please upload and prepare your dataset first.")
     return
-# Work with a copy so the original prepared dataset
+    # Work with a copy so the original prepared dataset
     # is never modified by this page.
     data = df.copy()
 
