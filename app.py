@@ -748,10 +748,7 @@ with st.sidebar:
 #===========================================================================================================================================================================================================
 
 def render_executive_overview_page(df):
-    st.markdown(
-        "<h2 style='text-align: center;font-size: 30px; color: white; font-weight: 700;'>📊 Executive Overview</h2>",
-        unsafe_allow_html=True,
-    )
+   
 # Work with a copy so the original prepared dataset
     # is never modified by this page.
     data = df.copy()
@@ -823,7 +820,8 @@ def render_executive_overview_page(df):
         ">
             <h1 style="
                 margin-bottom: 5px;
-                font-size: 32px;
+                color: #ffffff;
+                font-size: 40px;
                 font-weight: 700;
             ">
                 📊 Executive Overview
