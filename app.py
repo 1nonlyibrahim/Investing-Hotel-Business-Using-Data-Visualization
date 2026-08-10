@@ -5026,15 +5026,14 @@ def render_stay_duration_analysis_page(df):
         errors="coerce"
     ).fillna(0)
 
-    # Create total stay duration
-    data["total_stay_nights"] = (
-        data["stays_in_weekend_nights"]
-        +
-        data["stays_in_week_nights"]
+        # Create Stay Duration
+    prepared_df["stay_duration"] = (
+        prepared_df["stays_in_weekend_nights"]
+        + prepared_df["stays_in_week_nights"]
     )
 
     # Remove impossible negative stays
-    data["total_stay_nights"] = data[
+    prepared_df["total_stay_nights"] = prepared_df[
         "total_stay_nights"
     ].clip(lower=0)
 
