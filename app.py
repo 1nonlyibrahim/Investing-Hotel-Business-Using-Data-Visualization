@@ -5632,42 +5632,6 @@ def render_stay_duration_analysis_page(df):
             recommendation
         )
 
-# ============================================================
-# CREATE STAY DURATION
-# ============================================================
-prepared_df = df.copy()
-# Make sure both source columns are numeric
-df["stays_in_weekend_nights"] = pd.to_numeric(
-    df["stays_in_weekend_nights"],
-    errors="coerce"
-)
-
-df["stays_in_week_nights"] = pd.to_numeric(
-    df["stays_in_week_nights"],
-    errors="coerce"
-)
-
-# Replace missing values with 0
-df["stays_in_weekend_nights"] = (
-    df["stays_in_weekend_nights"].fillna(0)
-)
-
-df["stays_in_week_nights"] = (
-    df["stays_in_week_nights"].fillna(0)
-)
-
-# Create total stay duration
-df["stay_duration"] = (
-    df["stays_in_weekend_nights"]
-    +
-    df["stays_in_week_nights"]
-)
-
-# Make sure duration cannot be negative
-df["stay_duration"] = (
-    df["stay_duration"].clip(lower=0)
-)
-
 # =================================================================================================
 # 💰 REVENUE ANALYSIS PAGE
 # =================================================================================================
