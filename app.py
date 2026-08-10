@@ -814,9 +814,39 @@ def render_executive_overview_page(df):
     # --------------------------------------------------------
 
     st.markdown(
-        "## Executive Overview\n\n"
-        "High-level overview of hotel booking performance, "
-        "demand, cancellations and revenue."
+        """
+        <style>
+        html, body, [class*="st-"] {
+            color: white !important;
+        }
+
+        h1, h2, h3, h4, h5, h6 {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricLabel"] {
+            color: white !important;
+            font-weight: bold !important;
+        }
+
+        [data-testid="stMetricValue"] {
+            color: white !important;
+            font-weight: normal !important;
+        }
+
+        .stAlert, .stInfo, .stSuccess, .stWarning {
+            color: white !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        "<h2 style='color: white; font-weight: bold; margin-bottom: 0.25rem;'>Executive Overview</h2>"
+        "<p style='color: white; font-weight: normal; margin-top: 0;'>High-level overview of hotel booking performance, demand, cancellations and revenue.</p>",
+        unsafe_allow_html=True
     )
 
     # --------------------------------------------------------
@@ -898,7 +928,10 @@ def render_executive_overview_page(df):
     # KPI CARDS
     # --------------------------------------------------------
 
-    st.markdown("### 📌 Key Performance Indicators")
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold; margin-bottom: 0.5rem;'>📌 Key Performance Indicators</h3>",
+        unsafe_allow_html=True
+    )
 
     kpi1, kpi2, kpi3, kpi4 = st.columns(4)
 
@@ -952,6 +985,11 @@ def render_executive_overview_page(df):
             f"{total_revenue:,.0f}"
         )
 
+    st.metric(
+        "Revenue Lost from Cancellations",
+        f"{cancelled_revenue:,.0f}"
+    )
+
     st.divider()
 
     # --------------------------------------------------------
@@ -966,7 +1004,10 @@ def render_executive_overview_page(df):
 
     with col1:
 
-        st.markdown("### 🏨 Bookings by Hotel")
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>🏨 Bookings by Hotel</h3>",
+            unsafe_allow_html=True
+        )
 
         if "hotel" in data.columns:
 
@@ -1015,7 +1056,10 @@ def render_executive_overview_page(df):
 
     with col2:
 
-        st.markdown("### 📅 Monthly Bookings")
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>📅 Monthly Bookings</h3>",
+            unsafe_allow_html=True
+        )
 
         if (
             "arrival_date_month" in data.columns
@@ -1077,7 +1121,10 @@ def render_executive_overview_page(df):
 
     with col1:
 
-        st.markdown("### ❌ Monthly Cancellation Rate")
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>❌ Monthly Cancellation Rate</h3>",
+            unsafe_allow_html=True
+        )
 
         if (
             "arrival_date_month" in data.columns
@@ -1138,7 +1185,10 @@ def render_executive_overview_page(df):
 
     with col2:
 
-        st.markdown("### 💰 Average ADR by Month")
+        st.markdown(
+            "<h3 style='color: white; font-weight: bold;'>💰 Average ADR by Month</h3>",
+            unsafe_allow_html=True
+        )
 
         if (
             "arrival_date_month" in data.columns
@@ -1188,11 +1238,16 @@ def render_executive_overview_page(df):
                 "ADR or month data is unavailable."
             )
 
+    st.divider()
+
     # --------------------------------------------------------
     # ROW 3 — MARKET SEGMENT
     # --------------------------------------------------------
 
-    st.markdown("### 📢 Booking Distribution")
+    st.markdown(
+        "<h3 style='color: white; font-weight: bold;'>📢 Booking Distribution</h3>",
+        unsafe_allow_html=True
+    )
 
     col1, col2 = st.columns(2)
 
@@ -1202,7 +1257,10 @@ def render_executive_overview_page(df):
 
     with col1:
 
-        st.markdown("#### Market Segment")
+        st.markdown(
+            "<h4 style='color: white; font-weight: bold;'>Market Segment</h4>",
+            unsafe_allow_html=True
+        )
 
         if "market_segment" in data.columns:
 
@@ -1252,7 +1310,10 @@ def render_executive_overview_page(df):
 
     with col2:
 
-        st.markdown("#### Customer Type")
+        st.markdown(
+            "<h4 style='color: white; font-weight: bold;'>Customer Type</h4>",
+            unsafe_allow_html=True
+        )
 
         if "customer_type" in data.columns:
 
