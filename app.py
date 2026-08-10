@@ -814,30 +814,9 @@ def render_executive_overview_page(df):
     # --------------------------------------------------------
 
     st.markdown(
-        """
-        <div style="
-            padding: 10px 0 20px 0;
-        ">
-            <h1 style="
-                margin-bottom: 5px;
-                color: #ffffff;
-                font-size: 40px;
-                font-weight: 700;
-            ">
-                📊 Executive Overview
-            </h1>
-
-            <p style="
-                color: #9ca3af;
-                font-size: 15px;
-                margin-top: 0;
-            ">
-                High-level overview of hotel booking performance,
-                demand, cancellations and revenue.
-            </p>
-        </div>
-        """,
-        unsafe_allow_html=True
+        "## Executive Overview\n\n"
+        "High-level overview of hotel booking performance, "
+        "demand, cancellations and revenue."
     )
 
     # --------------------------------------------------------
