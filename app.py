@@ -3339,6 +3339,919 @@ def render_booking_trends_page(df):
 
         st.success(recommendation)
 
+# =================================================================================================
+# ❌ CANCELLATION ANALYSIS PAGE
+# =================================================================================================
+
+def render_cancellation_analysis_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    data = df.copy()
+
+    # =============================================================================================
+    # PAGE HEADER
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h2 style="
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 0.25rem;
+        ">
+            ❌ Cancellation Analysis
+        </h2>
+
+        <p style="
+            color: white;
+            margin-top: 0;
+        ">
+            Identify cancellation patterns, risk factors and the strongest drivers
+            of booking cancellations.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # =============================================================================================
+    # REQUIRED COLUMN CHECK
+    # =============================================================================================
+
+    if "is_canceled" not in data.columns:
+
+        st.error(
+            "❌ The required column 'is_canceled' is not available in the prepared dataset."
+        )
+        return
+
+    # =============================================================================================
+    # BASIC DATA PREPARATION
+    # =============================================================================================
+
+    data["is_canceled"] = pd.to_numeric(
+        data["is_canceled"],
+        errors="coerce"
+    ).fillna(0)
+
+    data["is_canceled"] = data["is_canceled"].astype(int)
+
+    # =============================================================================================
+    # TOTAL BOOKINGS
+    # =============================================================================================
+
+    total_bookings = len(data)
+
+    cancelled_bookings = int(
+        data["is_canceled"].sum()
+    )
+
+    confirmed_bookings = (
+        total_bookings - cancelled_bookings
+    )
+
+    cancellation_rate = (
+        cancelled_bookings / total_bookings * 100
+        if total_bookings > 0
+        else 0
+    )
+
+    # =============================================================================================
+    # CANCELLED BOOKING DATA
+    # =============================================================================================
+
+    cancelled_data = data[
+        data["is_canceled"] == 1
+    ].copy()
+
+    # =============================================================================================
+    # AVERAGE LEAD TIME OF CANCELLED BOOKINGS
+    # =============================================================================================
+
+    if "lead_time" in data.columns:
+
+        data["lead_time"] = pd.to_numeric(
+            data["lead_time"],
+            errors="coerce"
+        )
+
+        avg_cancelled_lead_time = (
+            cancelled_data["lead_time"].mean()
+            if not cancelled_data.empty
+            else 0
+        )
+
+    else:
+
+        avg_cancelled_lead_time = 0
+
+    # =============================================================================================
+    # ESTIMATED REVENUE
+    # =============================================================================================
+
+    if all(
+        col in data.columns
+        for col in [
+            "adr",
+            "stays_in_weekend_nights",
+            "stays_in_week_nights"
+        ]
+    ):
+
+        data["adr"] = pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["stays_in_weekend_nights"] = pd.to_numeric(
+            data["stays_in_weekend_nights"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["stays_in_week_nights"] = pd.to_numeric(
+            data["stays_in_week_nights"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["total_stay_nights"] = (
+            data["stays_in_weekend_nights"]
+            +
+            data["stays_in_week_nights"]
+        )
+
+        data["estimated_revenue"] = (
+            data["adr"]
+            *
+            data["total_stay_nights"]
+        )
+
+        revenue_lost = (
+            data.loc[
+                data["is_canceled"] == 1,
+                "estimated_revenue"
+            ].sum()
+        )
+
+    else:
+
+        revenue_lost = 0
+
+    # =============================================================================================
+    # KPI SECTION
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h3 style="color: white; font-weight: bold;">
+            📌 Cancellation KPIs
+        </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3 = st.columns(3)
+
+    kpi4, kpi5, kpi6 = st.columns(3)
+
+    with kpi1:
+
+        st.metric(
+            "Total Bookings",
+            f"{total_bookings:,}"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Cancelled Bookings",
+            f"{cancelled_bookings:,}"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Confirmed Bookings",
+            f"{confirmed_bookings:,}"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Cancellation Rate",
+            f"{cancellation_rate:.2f}%"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Estimated Revenue Lost",
+            f"{revenue_lost:,.2f}"
+        )
+
+    with kpi6:
+
+        st.metric(
+            "Avg Lead Time of Cancelled",
+            f"{avg_cancelled_lead_time:.1f} days"
+        )
+
+    st.divider()
+
+    # =============================================================================================
+    # CANCELLATION BY HOTEL
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 🏨 Cancellation by Hotel"
+        )
+
+        if "hotel" in data.columns:
+
+            hotel_cancel = (
+                data.groupby("hotel")["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            hotel_cancel["Cancellation Rate"] = (
+                hotel_cancel["is_canceled"] * 100
+            )
+
+            fig = px.bar(
+                hotel_cancel,
+                x="hotel",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Hotel",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info("Hotel column is not available.")
+
+    # =============================================================================================
+    # CANCELLATION BY MONTH
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 📅 Cancellation by Month"
+        )
+
+        if "arrival_date_month" in data.columns:
+
+            month_order = [
+                "January",
+                "February",
+                "March",
+                "April",
+                "May",
+                "June",
+                "July",
+                "August",
+                "September",
+                "October",
+                "November",
+                "December"
+            ]
+
+            data["arrival_date_month"] = pd.Categorical(
+                data["arrival_date_month"],
+                categories=month_order,
+                ordered=True
+            )
+
+            monthly_cancel = (
+                data.groupby(
+                    "arrival_date_month",
+                    observed=True
+                )["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            monthly_cancel["Cancellation Rate"] = (
+                monthly_cancel["is_canceled"] * 100
+            )
+
+            fig = px.line(
+                monthly_cancel,
+                x="arrival_date_month",
+                y="Cancellation Rate",
+                markers=True
+            )
+
+            fig.update_layout(
+                xaxis_title="Month",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Arrival month column is not available."
+            )
+
+    # =============================================================================================
+    # MARKET SEGMENT
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 📢 Cancellation by Market Segment"
+        )
+
+        if "market_segment" in data.columns:
+
+            segment_cancel = (
+                data.groupby("market_segment")["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            segment_cancel["Cancellation Rate"] = (
+                segment_cancel["is_canceled"] * 100
+            )
+
+            fig = px.bar(
+                segment_cancel,
+                x="market_segment",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment column is not available."
+            )
+
+    # =============================================================================================
+    # DISTRIBUTION CHANNEL
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 📡 Cancellation by Distribution Channel"
+        )
+
+        if "distribution_channel" in data.columns:
+
+            channel_cancel = (
+                data.groupby(
+                    "distribution_channel"
+                )["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            channel_cancel["Cancellation Rate"] = (
+                channel_cancel["is_canceled"] * 100
+            )
+
+            fig = px.bar(
+                channel_cancel,
+                x="distribution_channel",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Distribution Channel",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Distribution channel column is not available."
+            )
+
+    # =============================================================================================
+    # DEPOSIT TYPE
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 💳 Cancellation by Deposit Type"
+        )
+
+        if "deposit_type" in data.columns:
+
+            deposit_cancel = (
+                data.groupby(
+                    "deposit_type"
+                )["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            deposit_cancel["Cancellation Rate"] = (
+                deposit_cancel["is_canceled"] * 100
+            )
+
+            fig = px.bar(
+                deposit_cancel,
+                x="deposit_type",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Deposit Type",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Deposit type column is not available."
+            )
+
+    # =============================================================================================
+    # CUSTOMER TYPE
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 👥 Cancellation by Customer Type"
+        )
+
+        if "customer_type" in data.columns:
+
+            customer_cancel = (
+                data.groupby(
+                    "customer_type"
+                )["is_canceled"]
+                .mean()
+                .reset_index()
+            )
+
+            customer_cancel["Cancellation Rate"] = (
+                customer_cancel["is_canceled"] * 100
+            )
+
+            fig = px.bar(
+                customer_cancel,
+                x="customer_type",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type column is not available."
+            )
+
+    # =============================================================================================
+    # REPEAT GUEST
+    # =============================================================================================
+
+    st.markdown(
+        "### 🔁 Cancellation by Repeat Guest"
+    )
+
+    if "is_repeated_guest" in data.columns:
+
+        repeat_cancel = (
+            data.groupby(
+                "is_repeated_guest"
+            )["is_canceled"]
+            .mean()
+            .reset_index()
+        )
+
+        repeat_cancel["Guest Type"] = (
+            repeat_cancel["is_repeated_guest"]
+            .map({
+                0: "New Guest",
+                1: "Repeat Guest"
+            })
+        )
+
+        repeat_cancel["Cancellation Rate"] = (
+            repeat_cancel["is_canceled"] * 100
+        )
+
+        fig = px.bar(
+            repeat_cancel,
+            x="Guest Type",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Guest Type",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Repeat guest information is not available."
+        )
+
+    # =============================================================================================
+    # LEAD TIME GROUP
+    # =============================================================================================
+
+    st.markdown(
+        "### ⏳ Cancellation by Lead-Time Group"
+    )
+
+    if "lead_time" in data.columns:
+
+        data["Lead Time Group"] = pd.cut(
+            data["lead_time"],
+            bins=[
+                -1,
+                30,
+                60,
+                90,
+                180,
+                float("inf")
+            ],
+            labels=[
+                "0–30 days",
+                "31–60 days",
+                "61–90 days",
+                "91–180 days",
+                "180+ days"
+            ]
+        )
+
+        lead_cancel = (
+            data.groupby(
+                "Lead Time Group",
+                observed=True
+            )
+            .agg(
+                Bookings=("is_canceled", "size"),
+                Cancellation_Rate=("is_canceled", "mean")
+            )
+            .reset_index()
+        )
+
+        lead_cancel["Cancellation Rate"] = (
+            lead_cancel["Cancellation_Rate"] * 100
+        )
+
+        fig = px.bar(
+            lead_cancel,
+            x="Lead Time Group",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Lead-Time Group",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Lead time information is not available."
+        )
+
+    # =============================================================================================
+    # STAY DURATION GROUP
+    # =============================================================================================
+
+    st.markdown(
+        "### 🛏️ Cancellation by Stay Duration"
+    )
+
+    if all(
+        col in data.columns
+        for col in [
+            "stays_in_weekend_nights",
+            "stays_in_week_nights"
+        ]
+    ):
+
+        data["total_stay_nights"] = (
+            pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+            +
+            pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+        )
+
+        data["Stay Group"] = pd.cut(
+            data["total_stay_nights"],
+            bins=[
+                0,
+                1,
+                3,
+                7,
+                14,
+                float("inf")
+            ],
+            labels=[
+                "1 night",
+                "2–3 nights",
+                "4–7 nights",
+                "8–14 nights",
+                "15+ nights"
+            ]
+        )
+
+        stay_cancel = (
+            data.groupby(
+                "Stay Group",
+                observed=True
+            )["is_canceled"]
+            .mean()
+            .reset_index()
+        )
+
+        stay_cancel["Cancellation Rate"] = (
+            stay_cancel["is_canceled"] * 100
+        )
+
+        fig = px.bar(
+            stay_cancel,
+            x="Stay Group",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Stay Duration",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Stay duration columns are not available."
+        )
+
+    # =============================================================================================
+    # KEY INSIGHTS
+    # =============================================================================================
+
+    st.divider()
+
+    st.markdown(
+        "### 📌 Key Cancellation Insights"
+    )
+
+    insights = []
+
+    # Hotel insight
+    if "hotel" in data.columns:
+
+        hotel_rates = (
+            data.groupby("hotel")["is_canceled"]
+            .mean()
+            .mul(100)
+        )
+
+        highest_hotel = hotel_rates.idxmax()
+        highest_hotel_rate = hotel_rates.max()
+
+        insights.append(
+            f"🏨 **{highest_hotel}** has the highest cancellation rate "
+            f"at **{highest_hotel_rate:.1f}%**."
+        )
+
+    # Market insight
+    if "market_segment" in data.columns:
+
+        segment_rates = (
+            data.groupby("market_segment")["is_canceled"]
+            .mean()
+            .mul(100)
+        )
+
+        highest_segment = segment_rates.idxmax()
+        highest_segment_rate = segment_rates.max()
+
+        insights.append(
+            f"📢 **{highest_segment}** has the highest cancellation "
+            f"rate among market segments at **{highest_segment_rate:.1f}%**."
+        )
+
+    # Lead-time insight
+    if "Lead Time Group" in data.columns:
+
+        lead_rates = (
+            data.groupby(
+                "Lead Time Group",
+                observed=True
+            )["is_canceled"]
+            .mean()
+            .mul(100)
+        )
+
+        if not lead_rates.empty:
+
+            highest_lead_group = lead_rates.idxmax()
+            highest_lead_rate = lead_rates.max()
+
+            insights.append(
+                f"⏳ The **{highest_lead_group}** booking group "
+                f"shows the highest cancellation rate at "
+                f"**{highest_lead_rate:.1f}%**."
+            )
+
+    # Deposit insight
+    if "deposit_type" in data.columns:
+
+        deposit_rates = (
+            data.groupby("deposit_type")["is_canceled"]
+            .mean()
+            .mul(100)
+        )
+
+        highest_deposit = deposit_rates.idxmax()
+
+        insights.append(
+            f"💳 **{highest_deposit}** deposit bookings show the "
+            f"highest cancellation exposure."
+        )
+
+    # Repeat guest insight
+    if "is_repeated_guest" in data.columns:
+
+        repeat_rates = (
+            data.groupby(
+                "is_repeated_guest"
+            )["is_canceled"]
+            .mean()
+            .mul(100)
+        )
+
+        if 0 in repeat_rates.index and 1 in repeat_rates.index:
+
+            new_rate = repeat_rates.loc[0]
+            repeat_rate = repeat_rates.loc[1]
+
+            if repeat_rate < new_rate:
+
+                insights.append(
+                    f"🔁 Repeat guests have a lower cancellation "
+                    f"rate (**{repeat_rate:.1f}%**) compared with "
+                    f"new guests (**{new_rate:.1f}%**)."
+                )
+
+            else:
+
+                insights.append(
+                    f"🔁 Repeat guests have a higher cancellation "
+                    f"rate (**{repeat_rate:.1f}%**) compared with "
+                    f"new guests (**{new_rate:.1f}%**)."
+                )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # =============================================================================================
+    # RECOMMENDATIONS
+    # =============================================================================================
+
+    st.markdown(
+        "### 💡 Cancellation Recommendations"
+    )
+
+    recommendations = [
+        "🎯 Identify high-risk booking segments and apply stronger cancellation or deposit policies where appropriate.",
+        "📧 Send automated reminders before the cancellation deadline to reduce avoidable cancellations.",
+        "💳 Review deposit policies for booking categories with unusually high cancellation rates.",
+        "📊 Monitor long-lead-time bookings closely because advance bookings can create greater cancellation exposure.",
+        "🔁 Encourage repeat bookings and loyalty programs if repeat guests demonstrate lower cancellation rates."
+    ]
+
+    for recommendation in recommendations:
+
+        st.success(
+            recommendation
+        )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -3351,3 +4264,6 @@ elif selected_page == "🏨 Hotel Performance":
 
 elif selected_page == "📅 Booking Trends":
     render_booking_trends_page(prepared_df)
+
+elif selected_page == "❌ Cancellation Analysis":
+    render_cancellation_analysis_page(prepared_df)
