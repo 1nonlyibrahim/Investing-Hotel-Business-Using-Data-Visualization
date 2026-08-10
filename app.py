@@ -846,7 +846,7 @@ def render_executive_overview_page(df):
     )
 
     st.markdown(
-        "<h2 style='color: white; font-weight: bold; margin-bottom: 0.25rem;'>Executive Overview</h2>"
+        "<h2 style='color: white; font-weight: bold;text-align: center; margin-bottom: 0.25rem;'>Executive Overview</h2>"
         "<p style='color: white; font-weight: normal; margin-top: 0;'>High-level overview of hotel booking performance, demand, cancellations and revenue.</p>",
         unsafe_allow_html=True
     )
