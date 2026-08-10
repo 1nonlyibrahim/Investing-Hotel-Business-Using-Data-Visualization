@@ -5632,6 +5632,909 @@ def render_stay_duration_analysis_page(df):
             recommendation
         )
 
+# =================================================================================================
+# 💰 REVENUE ANALYSIS PAGE
+# =================================================================================================
+
+def render_revenue_analysis_page(df):
+
+    if df is None or df.empty:
+        st.info("📂 Please upload and prepare your dataset first.")
+        return
+
+    data = df.copy()
+
+    # =============================================================================================
+    # PAGE HEADER
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h2 style="
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            font-size: 40px;
+            margin-bottom: 0.25rem;
+        ">
+            💰 Revenue Analysis
+        </h2>
+
+        <p style="
+            color: white;
+            margin-top: 0;
+        ">
+            Analyze estimated hotel revenue, ADR performance, revenue trends,
+            and revenue exposure from cancelled bookings.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # =============================================================================================
+    # REQUIRED ADR COLUMN
+    # =============================================================================================
+
+    if "adr" not in data.columns:
+
+        st.error(
+            "❌ The required 'adr' column is not available in the prepared dataset."
+        )
+
+        return
+
+    # =============================================================================================
+    # ADR PREPARATION
+    # =============================================================================================
+
+    data["adr"] = pd.to_numeric(
+        data["adr"],
+        errors="coerce"
+    )
+
+    data = data.dropna(
+        subset=["adr"]
+    ).copy()
+
+    # Remove negative ADR values
+    data["adr"] = data["adr"].clip(lower=0)
+
+    # =============================================================================================
+    # STAY DURATION
+    # =============================================================================================
+
+    if "stay_duration" in data.columns:
+
+        data["stay_duration"] = pd.to_numeric(
+            data["stay_duration"],
+            errors="coerce"
+        ).fillna(0)
+
+    elif (
+        "stays_in_weekend_nights" in data.columns
+        and
+        "stays_in_week_nights" in data.columns
+    ):
+
+        data["stay_duration"] = (
+            pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+            +
+            pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+        )
+
+    else:
+
+        st.error(
+            "❌ Stay duration information is not available. "
+            "Please create the 'stay_duration' column during data preparation."
+        )
+
+        return
+
+    # =============================================================================================
+    # CANCELLATION
+    # =============================================================================================
+
+    if "is_canceled" in data.columns:
+
+        data["is_canceled"] = pd.to_numeric(
+            data["is_canceled"],
+            errors="coerce"
+        ).fillna(0)
+
+        data["is_canceled"] = data[
+            "is_canceled"
+        ].astype(int)
+
+    else:
+
+        data["is_canceled"] = 0
+
+    # =============================================================================================
+    # ESTIMATED REVENUE
+    # =============================================================================================
+
+    data["estimated_revenue"] = (
+        data["adr"]
+        *
+        data["stay_duration"]
+    )
+
+    # =============================================================================================
+    # CANCELLED REVENUE
+    # =============================================================================================
+
+    data["cancelled_revenue"] = (
+        data["estimated_revenue"]
+        *
+        data["is_canceled"]
+    )
+
+    # =============================================================================================
+    # CONFIRMED REVENUE
+    # =============================================================================================
+
+    data["confirmed_revenue"] = (
+        data["estimated_revenue"]
+        *
+        (1 - data["is_canceled"])
+    )
+
+    # =============================================================================================
+    # KPI CALCULATIONS
+    # =============================================================================================
+
+    total_estimated_revenue = data[
+        "estimated_revenue"
+    ].sum()
+
+    average_adr = data[
+        "adr"
+    ].mean()
+
+    median_adr = data[
+        "adr"
+    ].median()
+
+    maximum_adr = data[
+        "adr"
+    ].max()
+
+    cancelled_revenue = data[
+        "cancelled_revenue"
+    ].sum()
+
+    confirmed_revenue = data[
+        "confirmed_revenue"
+    ].sum()
+
+    # =============================================================================================
+    # REVENUE EXPOSURE %
+    # =============================================================================================
+
+    revenue_exposure = (
+        cancelled_revenue
+        /
+        total_estimated_revenue
+        *
+        100
+        if total_estimated_revenue > 0
+        else 0
+    )
+
+    # =============================================================================================
+    # KPI DISPLAY
+    # =============================================================================================
+
+    st.markdown(
+        """
+        <h3 style="color: white; font-weight: bold;">
+            📌 Revenue KPIs
+        </h3>
+        """,
+        unsafe_allow_html=True
+    )
+
+    kpi1, kpi2, kpi3 = st.columns(3)
+    kpi4, kpi5 = st.columns(2)
+
+    with kpi1:
+
+        st.metric(
+            "Estimated Revenue",
+            f"{total_estimated_revenue:,.2f}"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Average ADR",
+            f"{average_adr:,.2f}"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Median ADR",
+            f"{median_adr:,.2f}"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Maximum ADR",
+            f"{maximum_adr:,.2f}"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Revenue Exposed to Cancellation",
+            f"{revenue_exposure:.2f}%"
+        )
+
+    st.divider()
+
+    # =============================================================================================
+    # REVENUE BY HOTEL
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 🏨 Revenue by Hotel"
+        )
+
+        if "hotel" in data.columns:
+
+            hotel_revenue = (
+                data.groupby("hotel")[
+                    "estimated_revenue"
+                ]
+                .sum()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                hotel_revenue,
+                x="hotel",
+                y="estimated_revenue",
+                text="estimated_revenue"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:,.0f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Hotel",
+                yaxis_title="Estimated Revenue"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel column is not available."
+            )
+
+    # =============================================================================================
+    # ADR BY HOTEL
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 💵 ADR by Hotel"
+        )
+
+        if "hotel" in data.columns:
+
+            hotel_adr = (
+                data.groupby("hotel")[
+                    "adr"
+                ]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                hotel_adr,
+                x="hotel",
+                y="adr",
+                text="adr"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.2f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Hotel",
+                yaxis_title="Average ADR"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Hotel column is not available."
+            )
+
+    # =============================================================================================
+    # MONTHLY REVENUE
+    # =============================================================================================
+
+    st.markdown(
+        "### 📅 Monthly Estimated Revenue"
+    )
+
+    if "arrival_date_month" in data.columns:
+
+        month_order = [
+            "January",
+            "February",
+            "March",
+            "April",
+            "May",
+            "June",
+            "July",
+            "August",
+            "September",
+            "October",
+            "November",
+            "December"
+        ]
+
+        monthly_revenue = (
+            data.groupby(
+                "arrival_date_month"
+            )["estimated_revenue"]
+            .sum()
+            .reset_index()
+        )
+
+        monthly_revenue["arrival_date_month"] = pd.Categorical(
+            monthly_revenue["arrival_date_month"],
+            categories=month_order,
+            ordered=True
+        )
+
+        monthly_revenue = monthly_revenue.sort_values(
+            "arrival_date_month"
+        )
+
+        fig = px.line(
+            monthly_revenue,
+            x="arrival_date_month",
+            y="estimated_revenue",
+            markers=True
+        )
+
+        fig.update_layout(
+            xaxis_title="Month",
+            yaxis_title="Estimated Revenue"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Arrival month column is not available."
+        )
+
+    # =============================================================================================
+    # ADR BY MONTH
+    # =============================================================================================
+
+    st.markdown(
+        "### 📈 ADR by Month"
+    )
+
+    if "arrival_date_month" in data.columns:
+
+        monthly_adr = (
+            data.groupby(
+                "arrival_date_month"
+            )["adr"]
+            .mean()
+            .reset_index()
+        )
+
+        monthly_adr["arrival_date_month"] = pd.Categorical(
+            monthly_adr["arrival_date_month"],
+            categories=month_order,
+            ordered=True
+        )
+
+        monthly_adr = monthly_adr.sort_values(
+            "arrival_date_month"
+        )
+
+        fig = px.line(
+            monthly_adr,
+            x="arrival_date_month",
+            y="adr",
+            markers=True
+        )
+
+        fig.update_layout(
+            xaxis_title="Month",
+            yaxis_title="Average ADR"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    # =============================================================================================
+    # REVENUE BY MARKET SEGMENT
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### 📢 Revenue by Market Segment"
+        )
+
+        if "market_segment" in data.columns:
+
+            segment_revenue = (
+                data.groupby(
+                    "market_segment"
+                )["estimated_revenue"]
+                .sum()
+                .reset_index()
+                .sort_values(
+                    "estimated_revenue",
+                    ascending=False
+                )
+            )
+
+            fig = px.bar(
+                segment_revenue,
+                x="market_segment",
+                y="estimated_revenue",
+                text="estimated_revenue"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:,.0f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Estimated Revenue"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment column is not available."
+            )
+
+    # =============================================================================================
+    # REVENUE BY CUSTOMER TYPE
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 👥 Revenue by Customer Type"
+        )
+
+        if "customer_type" in data.columns:
+
+            customer_revenue = (
+                data.groupby(
+                    "customer_type"
+                )["estimated_revenue"]
+                .sum()
+                .reset_index()
+                .sort_values(
+                    "estimated_revenue",
+                    ascending=False
+                )
+            )
+
+            fig = px.bar(
+                customer_revenue,
+                x="customer_type",
+                y="estimated_revenue",
+                text="estimated_revenue"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:,.0f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Estimated Revenue"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type column is not available."
+            )
+
+    # =============================================================================================
+    # ADR DISTRIBUTION
+    # =============================================================================================
+
+    st.markdown(
+        "### 📊 ADR Distribution"
+    )
+
+    fig = px.histogram(
+        data,
+        x="adr",
+        nbins=40
+    )
+
+    fig.update_layout(
+        xaxis_title="ADR",
+        yaxis_title="Number of Bookings"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # REVENUE LOST TO CANCELLATION
+    # =============================================================================================
+
+    st.markdown(
+        "### ❌ Estimated Revenue Lost to Cancellation"
+    )
+
+    cancellation_revenue = (
+        data.groupby("is_canceled")[
+            "estimated_revenue"
+        ]
+        .sum()
+        .reset_index()
+    )
+
+    cancellation_revenue["Booking Status"] = (
+        cancellation_revenue["is_canceled"]
+        .map({
+            0: "Confirmed",
+            1: "Cancelled"
+        })
+    )
+
+    fig = px.bar(
+        cancellation_revenue,
+        x="Booking Status",
+        y="estimated_revenue",
+        text="estimated_revenue"
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:,.0f}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        xaxis_title="Booking Status",
+        yaxis_title="Estimated Revenue"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # =============================================================================================
+    # ADR VS CANCELLATION
+    # =============================================================================================
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown(
+            "### ❌ ADR vs Cancellation"
+        )
+
+        cancellation_adr = (
+            data.groupby("is_canceled")[
+                "adr"
+            ]
+            .mean()
+            .reset_index()
+        )
+
+        cancellation_adr["Booking Status"] = (
+            cancellation_adr["is_canceled"]
+            .map({
+                0: "Confirmed",
+                1: "Cancelled"
+            })
+        )
+
+        fig = px.bar(
+            cancellation_adr,
+            x="Booking Status",
+            y="adr",
+            text="adr"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.2f}",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Booking Status",
+            yaxis_title="Average ADR"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    # =============================================================================================
+    # REVENUE BY CUSTOMER TYPE
+    # =============================================================================================
+
+    with col2:
+
+        st.markdown(
+            "### 🛏️ Revenue by Stay Duration"
+        )
+
+        data["Stay Group"] = pd.cut(
+            data["stay_duration"],
+            bins=[
+                0,
+                1,
+                3,
+                7,
+                14,
+                float("inf")
+            ],
+            labels=[
+                "1 night",
+                "2–3 nights",
+                "4–7 nights",
+                "8–14 nights",
+                "15+ nights"
+            ],
+            include_lowest=True
+        )
+
+        stay_revenue = (
+            data.groupby(
+                "Stay Group",
+                observed=True
+            )["estimated_revenue"]
+            .sum()
+            .reset_index()
+        )
+
+        fig = px.bar(
+            stay_revenue,
+            x="Stay Group",
+            y="estimated_revenue",
+            text="estimated_revenue"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:,.0f}",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Stay Duration",
+            yaxis_title="Estimated Revenue"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    # =============================================================================================
+    # REVENUE SUMMARY TABLE
+    # =============================================================================================
+
+    st.markdown(
+        "### 📋 Revenue Summary"
+    )
+
+    summary_data = {
+        "Metric": [
+            "Estimated Revenue",
+            "Confirmed Revenue",
+            "Estimated Cancelled Revenue",
+            "Revenue Exposure",
+            "Average ADR",
+            "Median ADR",
+            "Maximum ADR"
+        ],
+        "Value": [
+            f"{total_estimated_revenue:,.2f}",
+            f"{confirmed_revenue:,.2f}",
+            f"{cancelled_revenue:,.2f}",
+            f"{revenue_exposure:.2f}%",
+            f"{average_adr:,.2f}",
+            f"{median_adr:,.2f}",
+            f"{maximum_adr:,.2f}"
+        ]
+    }
+
+    revenue_summary = pd.DataFrame(
+        summary_data
+    )
+
+    st.dataframe(
+        revenue_summary,
+        width="stretch",
+        hide_index=True
+    )
+
+    # =============================================================================================
+    # DYNAMIC BUSINESS INSIGHTS
+    # =============================================================================================
+
+    st.divider()
+
+    st.markdown(
+        "### 📌 Key Revenue Insights"
+    )
+
+    insights = []
+
+    # Highest revenue hotel
+    if "hotel" in data.columns:
+
+        hotel_rev = (
+            data.groupby("hotel")[
+                "estimated_revenue"
+            ]
+            .sum()
+        )
+
+        if not hotel_rev.empty:
+
+            top_hotel = hotel_rev.idxmax()
+            top_hotel_revenue = hotel_rev.max()
+
+            insights.append(
+                f"🏨 **{top_hotel}** generates the highest estimated "
+                f"revenue at **{top_hotel_revenue:,.2f}**."
+            )
+
+    # Highest ADR month
+    if "arrival_date_month" in data.columns:
+
+        month_adr = (
+            data.groupby(
+                "arrival_date_month"
+            )["adr"]
+            .mean()
+        )
+
+        if not month_adr.empty:
+
+            top_adr_month = month_adr.idxmax()
+            top_adr_value = month_adr.max()
+
+            insights.append(
+                f"📈 **{top_adr_month}** has the highest average ADR "
+                f"at **{top_adr_value:,.2f}**."
+            )
+
+    # Highest revenue segment
+    if "market_segment" in data.columns:
+
+        segment_rev = (
+            data.groupby(
+                "market_segment"
+            )["estimated_revenue"]
+            .sum()
+        )
+
+        if not segment_rev.empty:
+
+            top_segment = segment_rev.idxmax()
+
+            insights.append(
+                f"📢 **{top_segment}** contributes the highest "
+                f"estimated revenue among market segments."
+            )
+
+    # Cancellation exposure
+    insights.append(
+        f"❌ Approximately **{revenue_exposure:.1f}%** of estimated "
+        f"revenue is associated with cancelled bookings."
+    )
+
+    # ADR
+    insights.append(
+        f"💵 The average ADR across the filtered dataset is "
+        f"**{average_adr:,.2f}**."
+    )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # =============================================================================================
+    # BUSINESS RECOMMENDATIONS
+    # =============================================================================================
+
+    st.markdown(
+        "### 💡 Business Recommendations"
+    )
+
+    recommendations = [
+        "💰 Focus pricing strategies on periods and segments generating strong ADR and revenue.",
+        "📈 Consider dynamic pricing during high-demand periods when ADR and booking volume increase.",
+        "❌ Monitor revenue exposure from cancelled bookings and consider stronger deposit policies for high-risk bookings.",
+        "📢 Prioritize marketing channels and customer segments that generate strong revenue with manageable cancellation levels.",
+        "🛏️ Develop longer-stay packages when longer stays demonstrate favorable revenue characteristics."
+    ]
+
+    for recommendation in recommendations:
+
+        st.success(
+            recommendation
+        )
+
+    # =============================================================================================
+    # REVENUE DISCLAIMER
+    # =============================================================================================
+
+    st.caption(
+        "ℹ️ Estimated Revenue = ADR × Stay Duration. "
+        "This is an analytical estimate and should not be interpreted as actual "
+        "collected hotel revenue."
+    )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -5653,3 +6556,6 @@ elif selected_page == "⏳ Lead Time Analysis":
 
 elif selected_page == "🛏️ Stay Duration":
     render_stay_duration_analysis_page(prepared_df)
+
+elif selected_page == "💰 Revenue Analysis":
+    render_revenue_analysis_page(prepared_df)
