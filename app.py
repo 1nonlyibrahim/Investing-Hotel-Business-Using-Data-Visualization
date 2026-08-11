@@ -7145,34 +7145,21 @@ def render_business_insights_page(df):
         "previous_cancellations",
         "booking_changes",
         "total_of_special_requests"
-    ]
+    ]# =================================================================================================
+# 📌 BUSINESS INSIGHTS
+# =================================================================================================
 
-    for column in numeric_columns:
-
-        if column in data.columns:
-
-            data[column] = pd.to_numeric(
-                data[column],
-                errors="coerce"
-            )
+def render_business_insights_page(df):
 
     # ---------------------------------------------------------------------------------------------
-    # CREATE STAY DURATION
+    # CHECK DATA
     # ---------------------------------------------------------------------------------------------
 
-    if "stay_duration" not in data.columns:
+    if df is None or df.empty:
+        st.warning("No prepared dataset is available.")
+        return
 
-        if (
-            "stays_in_weekend_nights" in data.columns
-            and
-            "stays_in_week_nights" in data.columns
-        ):
-
-            data["stay_duration"] = (
-                data["stays_in_weekend_nights"].fillna(0)
-                +
-                data["stays_in_week_nights"].fillna(0)
-            )
+    data = df.copy()
 
     # ---------------------------------------------------------------------------------------------
     # PAGE HEADER
@@ -7196,19 +7183,65 @@ def render_business_insights_page(df):
             font-size:16px;
             margin-bottom:30px;
         ">
-            Key findings generated from booking behavior, hotel performance,
-            cancellations, pricing and customer activity.
+            Data-driven findings generated directly from the prepared dataset.
         </p>
         """,
         unsafe_allow_html=True
     )
 
     # ---------------------------------------------------------------------------------------------
-    # BASIC METRICS
+    # CONVERT NUMERIC COLUMNS
+    # ---------------------------------------------------------------------------------------------
+
+    numeric_columns = [
+        "is_canceled",
+        "lead_time",
+        "adr",
+        "stays_in_weekend_nights",
+        "stays_in_week_nights",
+        "adults",
+        "children",
+        "babies",
+        "is_repeated_guest",
+        "previous_cancellations",
+        "booking_changes",
+        "total_of_special_requests"
+    ]
+
+    for col in numeric_columns:
+
+        if col in data.columns:
+
+            data[col] = pd.to_numeric(
+                data[col],
+                errors="coerce"
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # CREATE STAY DURATION IF REQUIRED
+    # ---------------------------------------------------------------------------------------------
+
+    if "stay_duration" not in data.columns:
+
+        if (
+            "stays_in_weekend_nights" in data.columns
+            and
+            "stays_in_week_nights" in data.columns
+        ):
+
+            data["stay_duration"] = (
+                data["stays_in_weekend_nights"].fillna(0)
+                +
+                data["stays_in_week_nights"].fillna(0)
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # BASIC VALUES
     # ---------------------------------------------------------------------------------------------
 
     total_bookings = len(data)
 
+    # Cancellation
     if "is_canceled" in data.columns:
 
         cancellation_rate = (
@@ -7219,40 +7252,66 @@ def render_business_insights_page(df):
             data["is_canceled"].sum()
         )
 
+        confirmed_bookings = (
+            total_bookings - cancelled_bookings
+        )
+
     else:
 
-        cancellation_rate = 0
-        cancelled_bookings = 0
+        cancellation_rate = None
+        cancelled_bookings = None
+        confirmed_bookings = None
 
+    # ADR
     if "adr" in data.columns:
 
-        average_adr = data["adr"].mean()
+        adr_data = data["adr"].dropna()
+
+        average_adr = (
+            adr_data.mean()
+            if not adr_data.empty
+            else None
+        )
 
     else:
 
-        average_adr = 0
+        average_adr = None
 
+    # Lead time
     if "lead_time" in data.columns:
 
-        average_lead_time = data["lead_time"].mean()
+        lead_data = data["lead_time"].dropna()
+
+        average_lead_time = (
+            lead_data.mean()
+            if not lead_data.empty
+            else None
+        )
 
     else:
 
-        average_lead_time = 0
+        average_lead_time = None
 
+    # Stay duration
     if "stay_duration" in data.columns:
 
-        average_stay = data["stay_duration"].mean()
+        stay_data = data["stay_duration"].dropna()
+
+        average_stay = (
+            stay_data.mean()
+            if not stay_data.empty
+            else None
+        )
 
     else:
 
-        average_stay = 0
+        average_stay = None
 
     # ---------------------------------------------------------------------------------------------
-    # EXECUTIVE SUMMARY
+    # DATASET SUMMARY
     # ---------------------------------------------------------------------------------------------
 
-    st.markdown("### 📊 Executive Summary")
+    st.markdown("### Dataset Performance Summary")
 
     col1, col2, col3, col4, col5 = st.columns(5)
 
@@ -7263,56 +7322,84 @@ def render_business_insights_page(df):
         )
 
     with col2:
-        st.metric(
-            "Cancellation Rate",
-            f"{cancellation_rate:.1f}%"
-        )
+
+        if cancellation_rate is not None:
+            st.metric(
+                "Cancellation Rate",
+                f"{cancellation_rate:.1f}%"
+            )
+        else:
+            st.metric(
+                "Cancellation Rate",
+                "N/A"
+            )
 
     with col3:
-        st.metric(
-            "Average ADR",
-            f"{average_adr:,.2f}"
-        )
+
+        if average_adr is not None:
+            st.metric(
+                "Average ADR",
+                f"{average_adr:,.2f}"
+            )
+        else:
+            st.metric(
+                "Average ADR",
+                "N/A"
+            )
 
     with col4:
-        st.metric(
-            "Average Lead Time",
-            f"{average_lead_time:.0f} days"
-        )
+
+        if average_lead_time is not None:
+            st.metric(
+                "Average Lead Time",
+                f"{average_lead_time:.0f} days"
+            )
+        else:
+            st.metric(
+                "Average Lead Time",
+                "N/A"
+            )
 
     with col5:
-        st.metric(
-            "Average Stay",
-            f"{average_stay:.1f} nights"
-        )
+
+        if average_stay is not None:
+            st.metric(
+                "Average Stay",
+                f"{average_stay:.1f} nights"
+            )
+        else:
+            st.metric(
+                "Average Stay",
+                "N/A"
+            )
 
     st.divider()
 
-    # ---------------------------------------------------------------------------------------------
-    # INSIGHT STORAGE
-    # ---------------------------------------------------------------------------------------------
+    # =============================================================================================
+    # CREATE DATA-DRIVEN INSIGHTS
+    # =============================================================================================
 
     insights = []
 
-    # =============================================================================================
-    # 1. HOTEL PERFORMANCE INSIGHT
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # 1. HOTEL BOOKING VOLUME
+    # ---------------------------------------------------------------------------------------------
 
     if "hotel" in data.columns:
 
         hotel_counts = (
             data["hotel"]
+            .dropna()
             .value_counts()
         )
 
         if not hotel_counts.empty:
 
-            top_hotel = hotel_counts.idxmax()
+            top_hotel = hotel_counts.index[0]
+            top_hotel_bookings = hotel_counts.iloc[0]
 
-            top_hotel_count = hotel_counts.max()
-
-            booking_share = (
-                top_hotel_count
+            top_hotel_share = (
+                top_hotel_bookings
                 /
                 total_bookings
                 *
@@ -7320,68 +7407,17 @@ def render_business_insights_page(df):
             )
 
             insights.append({
-                "category": "Hotel Performance",
                 "icon": "🏨",
                 "title": "Booking Volume",
-                "insight":
-                    f"{top_hotel} accounts for the largest share of bookings "
-                    f"with {top_hotel_count:,} bookings "
-                    f"({booking_share:.1f}% of the filtered dataset).",
-                "priority": "High"
+                "text":
+                    f"{top_hotel} received the highest number of bookings "
+                    f"with {top_hotel_bookings:,} bookings, representing "
+                    f"{top_hotel_share:.1f}% of all bookings in the dataset."
             })
 
-    # =============================================================================================
-    # 2. HOTEL ADR INSIGHT
-    # =============================================================================================
-
-    if (
-        "hotel" in data.columns
-        and
-        "adr" in data.columns
-    ):
-
-        hotel_adr = (
-            data.groupby("hotel")["adr"]
-            .mean()
-            .sort_values(ascending=False)
-        )
-
-        if not hotel_adr.empty:
-
-            highest_adr_hotel = hotel_adr.idxmax()
-
-            highest_adr_value = hotel_adr.max()
-
-            insights.append({
-                "category": "Revenue",
-                "icon": "💰",
-                "title": "ADR Performance",
-                "insight":
-                    f"{highest_adr_hotel} records the highest average ADR "
-                    f"at {highest_adr_value:.2f}.",
-                "priority": "Medium"
-            })
-
-    # =============================================================================================
-    # 3. CANCELLATION INSIGHT
-    # =============================================================================================
-
-    if "is_canceled" in data.columns:
-
-        insights.append({
-            "category": "Cancellation Risk",
-            "icon": "❌",
-            "title": "Cancellation Exposure",
-            "insight":
-                f"{cancelled_bookings:,} bookings are cancelled, producing "
-                f"an overall cancellation rate of {cancellation_rate:.1f}%.",
-            "priority":
-                "High" if cancellation_rate >= 30 else "Medium"
-        })
-
-    # =============================================================================================
-    # 4. HIGH-RISK HOTEL
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # 2. HOTEL CANCELLATION COMPARISON
+    # ---------------------------------------------------------------------------------------------
 
     if (
         "hotel" in data.columns
@@ -7396,41 +7432,47 @@ def render_business_insights_page(df):
             .sort_values(ascending=False)
         )
 
-        if not hotel_cancel.empty:
+        if len(hotel_cancel) >= 2:
 
-            highest_cancel_hotel = hotel_cancel.idxmax()
+            highest_hotel = hotel_cancel.index[0]
+            highest_rate = hotel_cancel.iloc[0]
 
-            highest_cancel_rate = hotel_cancel.max()
+            lowest_hotel = hotel_cancel.index[-1]
+            lowest_rate = hotel_cancel.iloc[-1]
+
+            difference = (
+                highest_rate - lowest_rate
+            )
 
             insights.append({
-                "category": "Cancellation Risk",
-                "icon": "⚠️",
-                "title": "Highest-Risk Hotel",
-                "insight":
-                    f"{highest_cancel_hotel} has the highest cancellation "
-                    f"rate at {highest_cancel_rate:.1f}%.",
-                "priority": "High"
+                "icon": "❌",
+                "title": "Cancellation Difference",
+                "text":
+                    f"{highest_hotel} has the highest cancellation rate "
+                    f"at {highest_rate:.1f}%, compared with "
+                    f"{lowest_hotel} at {lowest_rate:.1f}%. "
+                    f"The difference is {difference:.1f} percentage points."
             })
 
-    # =============================================================================================
-    # 5. MARKET SEGMENT INSIGHT
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # 3. MARKET SEGMENT
+    # ---------------------------------------------------------------------------------------------
 
     if "market_segment" in data.columns:
 
         segment_counts = (
             data["market_segment"]
+            .dropna()
             .value_counts()
         )
 
         if not segment_counts.empty:
 
-            top_segment = segment_counts.idxmax()
-
-            top_segment_count = segment_counts.max()
+            top_segment = segment_counts.index[0]
+            top_segment_bookings = segment_counts.iloc[0]
 
             segment_share = (
-                top_segment_count
+                top_segment_bookings
                 /
                 total_bookings
                 *
@@ -7438,46 +7480,112 @@ def render_business_insights_page(df):
             )
 
             insights.append({
-                "category": "Market",
                 "icon": "📢",
                 "title": "Dominant Market Segment",
-                "insight":
-                    f"{top_segment} is the dominant market segment with "
-                    f"{top_segment_count:,} bookings "
-                    f"({segment_share:.1f}% of bookings).",
-                "priority": "High"
+                "text":
+                    f"{top_segment} is the largest market segment with "
+                    f"{top_segment_bookings:,} bookings, accounting for "
+                    f"{segment_share:.1f}% of all bookings."
             })
 
-    # =============================================================================================
-    # 6. DISTRIBUTION CHANNEL INSIGHT
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # 4. MARKET SEGMENT CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    if (
+        "market_segment" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        segment_cancel = (
+            data.groupby("market_segment")["is_canceled"]
+            .mean()
+            .mul(100)
+            .sort_values(ascending=False)
+        )
+
+        if not segment_cancel.empty:
+
+            highest_segment = segment_cancel.index[0]
+            highest_segment_rate = segment_cancel.iloc[0]
+
+            insights.append({
+                "icon": "⚠️",
+                "title": "Highest-Risk Market Segment",
+                "text":
+                    f"{highest_segment} has the highest cancellation rate "
+                    f"among the market segments at "
+                    f"{highest_segment_rate:.1f}%."
+            })
+
+    # ---------------------------------------------------------------------------------------------
+    # 5. DISTRIBUTION CHANNEL
+    # ---------------------------------------------------------------------------------------------
 
     if "distribution_channel" in data.columns:
 
         channel_counts = (
             data["distribution_channel"]
+            .dropna()
             .value_counts()
         )
 
         if not channel_counts.empty:
 
-            top_channel = channel_counts.idxmax()
+            top_channel = channel_counts.index[0]
+            top_channel_bookings = channel_counts.iloc[0]
 
-            top_channel_count = channel_counts.max()
+            channel_share = (
+                top_channel_bookings
+                /
+                total_bookings
+                *
+                100
+            )
 
             insights.append({
-                "category": "Distribution",
                 "icon": "📡",
-                "title": "Dominant Booking Channel",
-                "insight":
-                    f"{top_channel} is the most frequently used distribution "
-                    f"channel with {top_channel_count:,} bookings.",
-                "priority": "Medium"
+                "title": "Booking Channel",
+                "text":
+                    f"{top_channel} generated the highest booking volume "
+                    f"with {top_channel_bookings:,} bookings, representing "
+                    f"{channel_share:.1f}% of all bookings."
             })
 
-    # =============================================================================================
-    # 7. LEAD TIME INSIGHT
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # 6. MONTHLY DEMAND
+    # ---------------------------------------------------------------------------------------------
+
+    if "arrival_date_month" in data.columns:
+
+        month_counts = (
+            data["arrival_date_month"]
+            .dropna()
+            .value_counts()
+        )
+
+        if not month_counts.empty:
+
+            highest_month = month_counts.index[0]
+            highest_month_bookings = month_counts.iloc[0]
+
+            lowest_month = month_counts.index[-1]
+            lowest_month_bookings = month_counts.iloc[-1]
+
+            insights.append({
+                "icon": "📅",
+                "title": "Demand Pattern",
+                "text":
+                    f"{highest_month} recorded the highest booking volume "
+                    f"with {highest_month_bookings:,} bookings, while "
+                    f"{lowest_month} recorded the lowest with "
+                    f"{lowest_month_bookings:,} bookings."
+            })
+
+    # ---------------------------------------------------------------------------------------------
+    # 7. LEAD TIME AND CANCELLATION
+    # ---------------------------------------------------------------------------------------------
 
     if (
         "lead_time" in data.columns
@@ -7512,27 +7620,71 @@ def render_business_insights_page(df):
             )
 
             difference = (
-                long_cancel
-                -
-                short_cancel
+                long_cancel - short_cancel
             )
 
             if difference > 0:
 
-                insights.append({
-                    "category": "Booking Behavior",
-                    "icon": "⏳",
-                    "title": "Lead-Time Risk",
-                    "insight":
-                        f"Bookings made further in advance have a "
-                        f"{long_cancel:.1f}% cancellation rate compared "
-                        f"with {short_cancel:.1f}% for shorter lead times.",
-                    "priority": "High"
-                })
+                text = (
+                    f"Bookings made more than the median lead time "
+                    f"({median_lead:.0f} days) have a cancellation rate "
+                    f"of {long_cancel:.1f}%, compared with "
+                    f"{short_cancel:.1f}% for shorter lead times. "
+                    f"This represents a {difference:.1f} percentage-point difference."
+                )
 
-    # =============================================================================================
-    # 8. REPEAT GUEST INSIGHT
-    # =============================================================================================
+            else:
+
+                text = (
+                    f"Bookings made more than the median lead time "
+                    f"({median_lead:.0f} days) have a cancellation rate "
+                    f"of {long_cancel:.1f}%, compared with "
+                    f"{short_cancel:.1f}% for shorter lead times."
+                )
+
+            insights.append({
+                "icon": "⏳",
+                "title": "Lead Time and Cancellation",
+                "text": text
+            })
+
+    # ---------------------------------------------------------------------------------------------
+    # 8. CUSTOMER TYPE
+    # ---------------------------------------------------------------------------------------------
+
+    if "customer_type" in data.columns:
+
+        customer_counts = (
+            data["customer_type"]
+            .dropna()
+            .value_counts()
+        )
+
+        if not customer_counts.empty:
+
+            top_customer = customer_counts.index[0]
+            top_customer_count = customer_counts.iloc[0]
+
+            customer_share = (
+                top_customer_count
+                /
+                total_bookings
+                *
+                100
+            )
+
+            insights.append({
+                "icon": "👥",
+                "title": "Customer Composition",
+                "text":
+                    f"{top_customer} is the most common customer type "
+                    f"with {top_customer_count:,} bookings, representing "
+                    f"{customer_share:.1f}% of all bookings."
+            })
+
+    # ---------------------------------------------------------------------------------------------
+    # 9. REPEAT GUESTS
+    # ---------------------------------------------------------------------------------------------
 
     if "is_repeated_guest" in data.columns:
 
@@ -7540,207 +7692,289 @@ def render_business_insights_page(df):
             data["is_repeated_guest"]
             .fillna(0)
             .mean()
-            * 100
-        )
-
-        insights.append({
-            "category": "Customer",
-            "icon": "🔁",
-            "title": "Repeat Guest Activity",
-            "insight":
-                f"Repeat guests represent approximately "
-                f"{repeat_rate:.1f}% of bookings.",
-            "priority":
-                "High" if repeat_rate < 20 else "Medium"
-        })
-
-    # =============================================================================================
-    # 9. STAY DURATION INSIGHT
-    # =============================================================================================
-
-    if "stay_duration" in data.columns:
-
-        long_stay_percentage = (
-            (
-                data["stay_duration"] >= 4
-            ).mean()
             *
             100
         )
 
-        insights.append({
-            "category": "Customer Behavior",
-            "icon": "🛏️",
-            "title": "Stay Duration",
-            "insight":
-                f"{long_stay_percentage:.1f}% of bookings are for "
-                f"4 or more nights.",
-            "priority": "Medium"
-        })
-
-    # =============================================================================================
-    # 10. SEASONAL INSIGHT
-    # =============================================================================================
-
-    if "arrival_date_month" in data.columns:
-
-        monthly_bookings = (
-            data["arrival_date_month"]
-            .value_counts()
+        repeat_bookings = int(
+            data["is_repeated_guest"]
+            .fillna(0)
+            .sum()
         )
 
-        if not monthly_bookings.empty:
+        insights.append({
+            "icon": "🔁",
+            "title": "Repeat Guest Activity",
+            "text":
+                f"The dataset contains {repeat_bookings:,} repeat-guest "
+                f"bookings, meaning repeat guests account for "
+                f"{repeat_rate:.1f}% of total bookings."
+        })
 
-            peak_month = monthly_bookings.idxmax()
+    # ---------------------------------------------------------------------------------------------
+    # 10. STAY DURATION
+    # ---------------------------------------------------------------------------------------------
 
-            peak_month_bookings = monthly_bookings.max()
+    if "stay_duration" in data.columns:
+
+        stay_data = data["stay_duration"].dropna()
+
+        if not stay_data.empty:
+
+            average_stay_value = stay_data.mean()
+
+            longest_stay = stay_data.max()
 
             insights.append({
-                "category": "Seasonality",
-                "icon": "📅",
-                "title": "Peak Demand",
-                "insight":
-                    f"{peak_month} has the highest booking demand with "
-                    f"{peak_month_bookings:,} bookings.",
-                "priority": "High"
+                "icon": "🛏️",
+                "title": "Stay Duration",
+                "text":
+                    f"The average stay duration is "
+                    f"{average_stay_value:.1f} nights, while the longest "
+                    f"recorded stay in the dataset is "
+                    f"{longest_stay:.0f} nights."
+            })
+
+    # ---------------------------------------------------------------------------------------------
+    # 11. ADR BY HOTEL
+    # ---------------------------------------------------------------------------------------------
+
+    if (
+        "hotel" in data.columns
+        and
+        "adr" in data.columns
+    ):
+
+        hotel_adr = (
+            data.groupby("hotel")["adr"]
+            .mean()
+            .sort_values(ascending=False)
+        )
+
+        if not hotel_adr.empty:
+
+            highest_adr_hotel = hotel_adr.index[0]
+            highest_adr_value = hotel_adr.iloc[0]
+
+            insights.append({
+                "icon": "💰",
+                "title": "ADR Performance",
+                "text":
+                    f"{highest_adr_hotel} has the highest average ADR "
+                    f"at {highest_adr_value:.2f} in the dataset."
             })
 
     # =============================================================================================
-    # DISPLAY INSIGHTS
+    # DISPLAY DATA-DRIVEN INSIGHTS
     # =============================================================================================
 
-    st.markdown("### 🔎 Key Business Findings")
+    st.markdown("### 🔎 Findings From The Dataset")
 
-    if insights:
+    if not insights:
 
-        # Show the most important insights first
-        priority_order = {
-            "High": 0,
-            "Medium": 1,
-            "Low": 2
-        }
-
-        insights = sorted(
-            insights,
-            key=lambda x: priority_order.get(
-                x["priority"],
-                2
-            )
+        st.info(
+            "There is not enough information in the prepared dataset "
+            "to generate business insights."
         )
-
-        for insight in insights:
-
-            if insight["priority"] == "High":
-
-                st.error(
-                    f"{insight['icon']} **{insight['title']}**\n\n"
-                    f"{insight['insight']}"
-                )
-
-            else:
-
-                st.info(
-                    f"{insight['icon']} **{insight['title']}**\n\n"
-                    f"{insight['insight']}"
-                )
 
     else:
 
-        st.info(
-            "Not enough information is available to generate business insights."
-        )
+        for item in insights:
+
+            st.markdown(
+                f"""
+                <div style="
+                    background:#171717;
+                    border:1px solid #333333;
+                    border-left:4px solid #ff3b30;
+                    border-radius:10px;
+                    padding:18px;
+                    margin-bottom:14px;
+                ">
+
+                    <div style="
+                        font-size:19px;
+                        font-weight:700;
+                        color:white;
+                        margin-bottom:8px;
+                    ">
+                        {item["icon"]} {item["title"]}
+                    </div>
+
+                    <div style="
+                        font-size:15px;
+                        line-height:1.6;
+                        color:#D0D0D0;
+                    ">
+                        {item["text"]}
+                    </div>
+
+                </div>
+                """,
+                unsafe_allow_html=True
+            )
 
     # =============================================================================================
-    # BUSINESS INTERPRETATION
+    # DATASET-BASED BUSINESS TAKEAWAYS
     # =============================================================================================
 
     st.divider()
 
-    st.markdown("### 🧠 What These Findings Mean")
+    st.markdown("### 🎯 Business Takeaways From The Data")
 
-    interpretations = []
+    # Cancellation takeaway
+    if cancellation_rate is not None:
 
-    if cancellation_rate >= 30:
+        if cancellation_rate >= 30:
 
-        interpretations.append(
-            "❌ **Cancellation risk requires attention.** "
-            "A high cancellation rate means the hotel should review "
-            "booking policies, deposits and high-risk booking segments."
-        )
+            cancellation_text = (
+                f"The dataset shows a high cancellation level of "
+                f"{cancellation_rate:.1f}%. Out of {total_bookings:,} bookings, "
+                f"{cancelled_bookings:,} were cancelled."
+            )
 
-    elif cancellation_rate >= 20:
+        elif cancellation_rate >= 20:
 
-        interpretations.append(
-            "⚠️ **Cancellation risk is moderate.** "
-            "The hotel should monitor the segments and booking patterns "
-            "associated with higher cancellation."
-        )
+            cancellation_text = (
+                f"The dataset shows a moderate cancellation level of "
+                f"{cancellation_rate:.1f}%, with {cancelled_bookings:,} "
+                f"cancelled bookings out of {total_bookings:,}."
+            )
 
-    else:
+        else:
 
-        interpretations.append(
-            "✅ **Cancellation levels are relatively controlled.** "
-            "Current booking policies appear to limit excessive cancellation exposure."
-        )
-
-    if average_lead_time > 90:
-
-        interpretations.append(
-            "⏳ **Customers tend to book well in advance.** "
-            "This creates an opportunity for early-booking strategies, "
-            "but cancellation exposure should also be monitored."
-        )
-
-    elif average_lead_time > 30:
-
-        interpretations.append(
-            "⏳ **Bookings show moderate advance planning.** "
-            "Pricing and inventory can be adjusted around expected demand."
-        )
-
-    else:
-
-        interpretations.append(
-            "⚡ **A large proportion of bookings are made relatively close to arrival.** "
-            "Real-time pricing and inventory management may therefore be important."
-        )
-
-    if repeat_rate if "repeat_rate" in locals() else 0 < 15:
-
-        interpretations.append(
-            "🔁 **Repeat customer penetration is relatively low.** "
-            "Customer retention and loyalty initiatives could provide an opportunity "
-            "to increase repeat bookings."
-        )
-
-    for interpretation in interpretations:
+            cancellation_text = (
+                f"The dataset shows a cancellation rate of "
+                f"{cancellation_rate:.1f}%, with {cancelled_bookings:,} "
+                f"cancelled bookings out of {total_bookings:,}."
+            )
 
         st.markdown(
             f"""
             <div style="
-                padding:15px;
-                margin:10px 0;
-                border-radius:10px;
                 background:#171717;
-                border:1px solid #333333;
+                border-radius:10px;
+                padding:16px;
+                margin-bottom:10px;
+                border:1px solid #333;
             ">
-                {interpretation}
+                <span style="font-size:20px;">❌</span>
+                <span style="
+                    color:white;
+                    font-weight:700;
+                    font-size:17px;
+                ">
+                    Cancellation
+                </span>
+                <br><br>
+                <span style="color:#cccccc;">
+                    {cancellation_text}
+                </span>
             </div>
             """,
             unsafe_allow_html=True
         )
 
-    # =============================================================================================
-    # IMPORTANT NOTE
-    # =============================================================================================
+    # ADR takeaway
+    if average_adr is not None:
+
+        st.markdown(
+            f"""
+            <div style="
+                background:#171717;
+                border-radius:10px;
+                padding:16px;
+                margin-bottom:10px;
+                border:1px solid #333;
+            ">
+                <span style="font-size:20px;">💰</span>
+                <span style="
+                    color:white;
+                    font-weight:700;
+                    font-size:17px;
+                ">
+                    Pricing
+                </span>
+                <br><br>
+                <span style="color:#cccccc;">
+                    The average daily rate recorded in the dataset is
+                    {average_adr:.2f}.
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # Lead time takeaway
+    if average_lead_time is not None:
+
+        st.markdown(
+            f"""
+            <div style="
+                background:#171717;
+                border-radius:10px;
+                padding:16px;
+                margin-bottom:10px;
+                border:1px solid #333;
+            ">
+                <span style="font-size:20px;">⏳</span>
+                <span style="
+                    color:white;
+                    font-weight:700;
+                    font-size:17px;
+                ">
+                    Booking Behavior
+                </span>
+                <br><br>
+                <span style="color:#cccccc;">
+                    Customers make their bookings an average of
+                    {average_lead_time:.0f} days before arrival.
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # Stay duration takeaway
+    if average_stay is not None:
+
+        st.markdown(
+            f"""
+            <div style="
+                background:#171717;
+                border-radius:10px;
+                padding:16px;
+                margin-bottom:10px;
+                border:1px solid #333;
+            ">
+                <span style="font-size:20px;">🛏️</span>
+                <span style="
+                    color:white;
+                    font-weight:700;
+                    font-size:17px;
+                ">
+                    Stay Pattern
+                </span>
+                <br><br>
+                <span style="color:#cccccc;">
+                    The average booking in the dataset represents a stay
+                    of {average_stay:.1f} nights.
+                </span>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SOURCE NOTE
+    # ---------------------------------------------------------------------------------------------
 
     st.divider()
 
     st.caption(
-        "ℹ️ These insights are calculated from the current dataset and respond "
-        "to the active dashboard filters. They describe patterns and associations "
-        "and should not be interpreted as proof of causation."
-    )
+        "All findings shown on this page are calculated directly from the "
+        "currently available prepared dataset. Values will change when filters are applied."
+    )s
 
 #===========================================================================================================================================================================================================
 #page routing based on selected page
