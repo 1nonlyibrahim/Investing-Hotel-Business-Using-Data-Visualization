@@ -9181,8 +9181,6 @@ def render_recommendations_page(df):
     # DISPLAY RECOMMENDATIONS
     # =============================================================================================
 
-    st.markdown("### 🎯 Data-Driven Recommendations")
-
     if not recommendations:
 
         st.info(
