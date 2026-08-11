@@ -7781,38 +7781,8 @@ def render_business_insights_page(df):
 
         for item in insights:
 
-            st.markdown(
-                f"""
-                <div style="
-                    background:#171717;
-                    border:1px solid #333333;
-                    border-left:4px solid #ff3b30;
-                    border-radius:10px;
-                    padding:18px;
-                    margin-bottom:14px;
-                ">
-
-                    <div style="
-                        font-size:19px;
-                        font-weight:700;
-                        color:white;
-                        margin-bottom:8px;
-                    ">
-                        {item["icon"]} {item["title"]}
-                    </div>
-
-                    <div style="
-                        font-size:15px;
-                        line-height:1.6;
-                        color:#D0D0D0;
-                    ">
-                        {item["text"]}
-                    </div>
-
-                </div>
-                """,
-                unsafe_allow_html=True
-            )
+            st.markdown(f"### {item['icon']} {item['title']}")
+            st.write(item['text'])
 
     # =============================================================================================
     # DATASET-BASED BUSINESS TAKEAWAYS
