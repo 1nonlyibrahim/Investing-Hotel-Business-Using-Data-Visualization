@@ -155,6 +155,15 @@ st.markdown(
 # =================================================================================================
 # 🎛️ PROFESSIONAL GLOBAL FILTERS
 # =================================================================================================
+st.markdown(
+        """
+        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>Filters</div>
+        <div style='font-size:13px;color:#999999;line-height:1.5;margin-bottom:12px;'>
+            This section shows how the uploaded dataset was validated and prepared before analysis.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 def show_global_filters(df):
 
