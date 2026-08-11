@@ -5703,36 +5703,84 @@ def render_revenue_analysis_page(df):
     # STAY DURATION
     # =============================================================================================
 
-    if "stay_duration" in data.columns:
+    normalized_columns = {
+        str(col).strip().lower().replace(" ", "").replace("_", ""): col
+        for col in data.columns
+    }
+
+    stay_duration_column = None
+    weekend_nights_column = None
+    week_nights_column = None
+
+    for candidate in [
+        "stayduration",
+        "stay_duration"
+    ]:
+
+        if candidate in normalized_columns:
+            stay_duration_column = normalized_columns[candidate]
+            break
+
+    for candidate in [
+        "staysinweekendnights",
+        "stays_in_weekend_nights",
+        "weekendnights"
+    ]:
+
+        if candidate in normalized_columns:
+            weekend_nights_column = normalized_columns[candidate]
+            break
+
+    for candidate in [
+        "staysinweeknights",
+        "stays_in_week_nights",
+        "weeknights"
+    ]:
+
+        if candidate in normalized_columns:
+            week_nights_column = normalized_columns[candidate]
+            break
+
+    if stay_duration_column is not None:
 
         data["stay_duration"] = pd.to_numeric(
-            data["stay_duration"],
+            data[stay_duration_column],
             errors="coerce"
         ).fillna(0)
 
-    elif (
-        "stays_in_weekend_nights" in data.columns
-        and
-        "stays_in_week_nights" in data.columns
-    ):
+    elif weekend_nights_column is not None and week_nights_column is not None:
 
         data["stay_duration"] = (
             pd.to_numeric(
-                data["stays_in_weekend_nights"],
+                data[weekend_nights_column],
                 errors="coerce"
             ).fillna(0)
             +
             pd.to_numeric(
-                data["stays_in_week_nights"],
+                data[week_nights_column],
                 errors="coerce"
             ).fillna(0)
         )
+
+    elif weekend_nights_column is not None:
+
+        data["stay_duration"] = pd.to_numeric(
+            data[weekend_nights_column],
+            errors="coerce"
+        ).fillna(0)
+
+    elif week_nights_column is not None:
+
+        data["stay_duration"] = pd.to_numeric(
+            data[week_nights_column],
+            errors="coerce"
+        ).fillna(0)
 
     else:
 
         st.error(
             "❌ Stay duration information is not available. "
-            "Please create the 'stay_duration' column during data preparation."
+            "Please create a 'stay_duration' column or provide weekend/week night columns during data preparation."
         )
 
         return
