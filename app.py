@@ -7947,6 +7947,609 @@ def render_business_insights_page(df):
         "currently available prepared dataset. Values will change when filters are applied."
     )
 
+# =================================================================================================
+# 💡 RECOMMENDATIONS PAGE
+# =================================================================================================
+
+def render_recommendations_page(df):
+
+    # ---------------------------------------------------------------------------------------------
+    # CHECK DATASET
+    # ---------------------------------------------------------------------------------------------
+
+    if df is None or df.empty:
+        st.warning("No prepared dataset is available.")
+        return
+
+    data = df.copy()
+
+    # ---------------------------------------------------------------------------------------------
+    # PAGE HEADER
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown(
+        """
+        <h1 style="
+            text-align:center;
+            color:white;
+            font-size:40px;
+            font-weight:700;
+            margin-bottom:5px;
+        ">
+            💡 Recommendations
+        </h1>
+
+        <p style="
+            text-align:center;
+            color:#B8B8B8;
+            font-size:16px;
+            margin-bottom:30px;
+        ">
+            Business recommendations derived from the patterns identified in the dataset.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # PREPARE NUMERIC COLUMNS
+    # ---------------------------------------------------------------------------------------------
+
+    numeric_columns = [
+        "is_canceled",
+        "lead_time",
+        "adr",
+        "stays_in_weekend_nights",
+        "stays_in_week_nights",
+        "adults",
+        "children",
+        "babies",
+        "is_repeated_guest",
+        "previous_cancellations",
+        "booking_changes",
+        "total_of_special_requests"
+    ]
+
+    for col in numeric_columns:
+
+        if col in data.columns:
+
+            data[col] = pd.to_numeric(
+                data[col],
+                errors="coerce"
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # CREATE STAY DURATION
+    # ---------------------------------------------------------------------------------------------
+
+    if "stay_duration" not in data.columns:
+
+        if (
+            "stays_in_weekend_nights" in data.columns
+            and
+            "stays_in_week_nights" in data.columns
+        ):
+
+            data["stay_duration"] = (
+                data["stays_in_weekend_nights"].fillna(0)
+                +
+                data["stays_in_week_nights"].fillna(0)
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # BASIC DATASET VALUES
+    # ---------------------------------------------------------------------------------------------
+
+    total_bookings = len(data)
+
+    recommendations = []
+
+    # =============================================================================================
+    # 1. CANCELLATION RECOMMENDATION
+    # =============================================================================================
+
+    if "is_canceled" in data.columns:
+
+        cancellation_rate = (
+            data["is_canceled"].mean() * 100
+        )
+
+        cancelled_bookings = int(
+            data["is_canceled"].sum()
+        )
+
+        if cancellation_rate >= 30:
+
+            recommendations.append({
+                "priority": "HIGH",
+                "icon": "❌",
+                "title": "Reduce Cancellation Exposure",
+                "finding":
+                    f"The dataset shows a cancellation rate of "
+                    f"{cancellation_rate:.1f}%, with "
+                    f"{cancelled_bookings:,} cancelled bookings.",
+                "recommendation":
+                    "Review cancellation policies, deposit requirements "
+                    "and high-risk booking segments. Focus retention efforts "
+                    "on the segments showing the highest cancellation rates."
+            })
+
+        elif cancellation_rate >= 20:
+
+            recommendations.append({
+                "priority": "MEDIUM",
+                "icon": "⚠️",
+                "title": "Monitor Cancellation Levels",
+                "finding":
+                    f"The dataset shows a cancellation rate of "
+                    f"{cancellation_rate:.1f}%.",
+                "recommendation":
+                    "Monitor cancellation patterns by hotel, market segment "
+                    "and lead time to identify where cancellation exposure "
+                    "is concentrated."
+            })
+
+        else:
+
+            recommendations.append({
+                "priority": "LOW",
+                "icon": "✅",
+                "title": "Maintain Current Cancellation Performance",
+                "finding":
+                    f"The overall cancellation rate is "
+                    f"{cancellation_rate:.1f}%.",
+                "recommendation":
+                    "Continue monitoring cancellation behavior and investigate "
+                    "any segments that begin showing an increase."
+            })
+
+    # =============================================================================================
+    # 2. HOTEL-SPECIFIC RECOMMENDATION
+    # =============================================================================================
+
+    if (
+        "hotel" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        hotel_cancel = (
+            data.groupby("hotel")["is_canceled"]
+            .mean()
+            .mul(100)
+            .sort_values(ascending=False)
+        )
+
+        if len(hotel_cancel) >= 2:
+
+            highest_hotel = hotel_cancel.index[0]
+            highest_rate = hotel_cancel.iloc[0]
+
+            lowest_hotel = hotel_cancel.index[-1]
+            lowest_rate = hotel_cancel.iloc[-1]
+
+            difference = highest_rate - lowest_rate
+
+            recommendations.append({
+                "priority": "HIGH",
+                "icon": "🏨",
+                "title": f"Focus Cancellation Management on {highest_hotel}",
+                "finding":
+                    f"{highest_hotel} has a cancellation rate of "
+                    f"{highest_rate:.1f}%, compared with "
+                    f"{lowest_hotel} at {lowest_rate:.1f}%. "
+                    f"The difference is {difference:.1f} percentage points.",
+                "recommendation":
+                    f"Investigate the booking characteristics of "
+                    f"{highest_hotel} and introduce targeted measures "
+                    f"to reduce cancellations rather than applying the "
+                    f"same strategy across both hotels."
+            })
+
+    # =============================================================================================
+    # 3. LEAD TIME RECOMMENDATION
+    # =============================================================================================
+
+    if (
+        "lead_time" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        median_lead = data["lead_time"].median()
+
+        short_lead = data[
+            data["lead_time"] <= median_lead
+        ]
+
+        long_lead = data[
+            data["lead_time"] > median_lead
+        ]
+
+        if (
+            not short_lead.empty
+            and
+            not long_lead.empty
+        ):
+
+            short_cancel = (
+                short_lead["is_canceled"].mean()
+                * 100
+            )
+
+            long_cancel = (
+                long_lead["is_canceled"].mean()
+                * 100
+            )
+
+            difference = long_cancel - short_cancel
+
+            if difference > 3:
+
+                recommendations.append({
+                    "priority": "HIGH",
+                    "icon": "⏳",
+                    "title": "Manage Long Lead-Time Bookings",
+                    "finding":
+                        f"Bookings above the median lead time of "
+                        f"{median_lead:.0f} days have a cancellation rate "
+                        f"of {long_cancel:.1f}%, compared with "
+                        f"{short_cancel:.1f}% for shorter lead times.",
+                    "recommendation":
+                        "Use stronger confirmation, deposit or reminder "
+                        "strategies for bookings made far in advance."
+                })
+
+            else:
+
+                recommendations.append({
+                    "priority": "MEDIUM",
+                    "icon": "⏳",
+                    "title": "Monitor Lead-Time Behavior",
+                    "finding":
+                        f"The median booking lead time is "
+                        f"{median_lead:.0f} days.",
+                    "recommendation":
+                        "Continue monitoring cancellation behavior across "
+                        "different lead-time groups and adjust booking "
+                        "policies if a higher-risk segment emerges."
+                })
+
+    # =============================================================================================
+    # 4. MARKET SEGMENT RECOMMENDATION
+    # =============================================================================================
+
+    if "market_segment" in data.columns:
+
+        segment_counts = (
+            data["market_segment"]
+            .dropna()
+            .value_counts()
+        )
+
+        if not segment_counts.empty:
+
+            top_segment = segment_counts.index[0]
+            top_segment_count = segment_counts.iloc[0]
+
+            segment_share = (
+                top_segment_count
+                /
+                total_bookings
+                *
+                100
+            )
+
+            if (
+                "is_canceled" in data.columns
+            ):
+
+                segment_cancel = (
+                    data.groupby("market_segment")["is_canceled"]
+                    .mean()
+                    .mul(100)
+                    .sort_values(ascending=False)
+                )
+
+                highest_risk_segment = segment_cancel.index[0]
+                highest_risk_rate = segment_cancel.iloc[0]
+
+                recommendations.append({
+                    "priority": "HIGH",
+                    "icon": "📢",
+                    "title": "Manage Market Segment Dependence",
+                    "finding":
+                        f"{top_segment} contributes "
+                        f"{segment_share:.1f}% of bookings, while "
+                        f"{highest_risk_segment} has the highest cancellation "
+                        f"rate at {highest_risk_rate:.1f}%.",
+                    "recommendation":
+                        "Protect the strongest booking segments while "
+                        "closely monitoring high-cancellation segments. "
+                        "Avoid relying too heavily on a single segment."
+                })
+
+    # =============================================================================================
+    # 5. DISTRIBUTION CHANNEL RECOMMENDATION
+    # =============================================================================================
+
+    if "distribution_channel" in data.columns:
+
+        channel_counts = (
+            data["distribution_channel"]
+            .dropna()
+            .value_counts()
+        )
+
+        if not channel_counts.empty:
+
+            top_channel = channel_counts.index[0]
+            top_channel_count = channel_counts.iloc[0]
+
+            channel_share = (
+                top_channel_count
+                /
+                total_bookings
+                *
+                100
+            )
+
+            recommendations.append({
+                "priority": "MEDIUM",
+                "icon": "📡",
+                "title": "Monitor Distribution Channel Dependence",
+                "finding":
+                    f"{top_channel} accounts for "
+                    f"{channel_share:.1f}% of bookings with "
+                    f"{top_channel_count:,} bookings.",
+                "recommendation":
+                    "Continue using the strongest channel while evaluating "
+                    "other channels to reduce dependence and identify "
+                    "opportunities for a healthier booking mix."
+            })
+
+    # =============================================================================================
+    # 6. ADR RECOMMENDATION
+    # =============================================================================================
+
+    if "adr" in data.columns:
+
+        adr_data = data["adr"].dropna()
+
+        if not adr_data.empty:
+
+            average_adr = adr_data.mean()
+
+            median_adr = adr_data.median()
+
+            if average_adr > median_adr:
+
+                recommendations.append({
+                    "priority": "MEDIUM",
+                    "icon": "💰",
+                    "title": "Review ADR Distribution",
+                    "finding":
+                        f"The average ADR is {average_adr:.2f}, "
+                        f"while the median ADR is {median_adr:.2f}.",
+                    "recommendation":
+                        "Review higher-priced bookings and investigate "
+                        "whether premium rates are concentrated in specific "
+                        "hotels, seasons or booking segments."
+                })
+
+            else:
+
+                recommendations.append({
+                    "priority": "MEDIUM",
+                    "icon": "💰",
+                    "title": "Review Pricing Opportunities",
+                    "finding":
+                        f"The average ADR is {average_adr:.2f}, "
+                        f"with a median of {median_adr:.2f}.",
+                    "recommendation":
+                        "Compare ADR across hotels, months and market "
+                        "segments to identify opportunities for better "
+                        "revenue optimization."
+                })
+
+    # =============================================================================================
+    # 7. REPEAT GUEST RECOMMENDATION
+    # =============================================================================================
+
+    if "is_repeated_guest" in data.columns:
+
+        repeat_rate = (
+            data["is_repeated_guest"]
+            .fillna(0)
+            .mean()
+            *
+            100
+        )
+
+        repeat_bookings = int(
+            data["is_repeated_guest"]
+            .fillna(0)
+            .sum()
+        )
+
+        if repeat_rate < 15:
+
+            recommendations.append({
+                "priority": "HIGH",
+                "icon": "🔁",
+                "title": "Increase Repeat Guest Activity",
+                "finding":
+                    f"Repeat guests represent only "
+                    f"{repeat_rate:.1f}% of bookings "
+                    f"({repeat_bookings:,} bookings).",
+                "recommendation":
+                    "Consider loyalty incentives, targeted offers and "
+                    "post-stay engagement to increase repeat bookings."
+            })
+
+        else:
+
+            recommendations.append({
+                "priority": "MEDIUM",
+                "icon": "🔁",
+                "title": "Strengthen Guest Retention",
+                "finding":
+                    f"Repeat guests represent "
+                    f"{repeat_rate:.1f}% of bookings.",
+                "recommendation":
+                    "Continue retention initiatives and identify which "
+                    "customer segments generate the highest repeat activity."
+            })
+
+    # =============================================================================================
+    # 8. STAY DURATION RECOMMENDATION
+    # =============================================================================================
+
+    if "stay_duration" in data.columns:
+
+        stay_data = data["stay_duration"].dropna()
+
+        if not stay_data.empty:
+
+            average_stay = stay_data.mean()
+
+            median_stay = stay_data.median()
+
+            recommendations.append({
+                "priority": "MEDIUM",
+                "icon": "🛏️",
+                "title": "Optimize Stay-Duration Strategy",
+                "finding":
+                    f"The average stay duration is "
+                    f"{average_stay:.1f} nights, with a median of "
+                    f"{median_stay:.1f} nights.",
+                "recommendation":
+                    "Use stay-duration patterns to design appropriate "
+                    "packages and offers for shorter and longer stays."
+            })
+
+    # =============================================================================================
+    # 9. SPECIAL REQUEST RECOMMENDATION
+    # =============================================================================================
+
+    if "total_of_special_requests" in data.columns:
+
+        request_data = data[
+            "total_of_special_requests"
+        ].dropna()
+
+        if not request_data.empty:
+
+            average_requests = request_data.mean()
+
+            recommendations.append({
+                "priority": "LOW",
+                "icon": "📝",
+                "title": "Use Guest Requests as a Service Indicator",
+                "finding":
+                    f"Bookings contain an average of "
+                    f"{average_requests:.1f} special requests.",
+                "recommendation":
+                    "Use guest-request patterns to understand service "
+                    "expectations and improve the guest experience."
+            })
+
+    # =============================================================================================
+    # DISPLAY RECOMMENDATIONS
+    # =============================================================================================
+
+    st.markdown("### 🎯 Data-Driven Recommendations")
+
+    if not recommendations:
+
+        st.info(
+            "There is not enough information in the prepared dataset "
+            "to generate recommendations."
+        )
+
+    else:
+
+        priority_order = {
+            "HIGH": 0,
+            "MEDIUM": 1,
+            "LOW": 2
+        }
+
+        recommendations = sorted(
+            recommendations,
+            key=lambda x: priority_order.get(
+                x["priority"],
+                3
+            )
+        )
+
+        for recommendation in recommendations:
+
+            st.markdown(
+                f"### {recommendation['icon']} {recommendation['title']}"
+            )
+
+            st.write(
+                f"Finding: {recommendation['finding']}"
+            )
+
+            st.write(
+                f"Recommendation: {recommendation['recommendation']}"
+            )
+
+            st.divider()
+
+    # =============================================================================================
+    # PRIORITY SUMMARY
+    # =============================================================================================
+
+    high_count = sum(
+        1
+        for r in recommendations
+        if r["priority"] == "HIGH"
+    )
+
+    medium_count = sum(
+        1
+        for r in recommendations
+        if r["priority"] == "MEDIUM"
+    )
+
+    low_count = sum(
+        1
+        for r in recommendations
+        if r["priority"] == "LOW"
+    )
+
+    st.markdown("### 📌 Recommendation Priority")
+
+    col1, col2, col3 = st.columns(3)
+
+    with col1:
+        st.metric(
+            "High Priority",
+            high_count
+        )
+
+    with col2:
+        st.metric(
+            "Medium Priority",
+            medium_count
+        )
+
+    with col3:
+        st.metric(
+            "Low Priority",
+            low_count
+        )
+
+    st.caption(
+        "Recommendations are generated from the currently available prepared dataset. "
+        "If dashboard filters are applied to the dataframe passed to this page, "
+        "the findings and recommendations will update accordingly."
+    )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -7977,3 +8580,6 @@ elif selected_page == "🔎 Relationship Analysis":
 
 elif selected_page == "📌 Business Insights":
     render_business_insights_page(prepared_df)
+
+elif selected_page == "💡 Recommendations":
+    render_recommendations_page(prepared_df)
