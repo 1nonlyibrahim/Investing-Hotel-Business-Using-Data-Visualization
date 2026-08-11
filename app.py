@@ -241,6 +241,790 @@ else:
     else:
         st.session_state["uploaded_file_name"] = uploaded_file.name
 
+# =================================================================================================
+# 🎛️ PROFESSIONAL GLOBAL FILTERS
+# =================================================================================================
+
+def show_global_filters(df):
+
+    filtered_df = df.copy()
+
+    # ---------------------------------------------------------------------------------------------
+    # MAIN FILTER CONTAINER
+    # ---------------------------------------------------------------------------------------------
+
+    with st.expander("🎛️ Filters", expanded=False):
+
+        st.caption(
+            "Use the filters below to customize the dashboard analysis."
+        )
+
+        # =========================================================================================
+        # MAIN FILTERS
+        # =========================================================================================
+
+        st.markdown("#### Main Filters")
+
+        col1, col2, col3 = st.columns(3)
+
+        # -----------------------------------------------------------------------------------------
+        # HOTEL — DROPDOWN
+        # -----------------------------------------------------------------------------------------
+
+        with col1:
+
+            if "hotel" in filtered_df.columns:
+
+                hotel_options = sorted(
+                    filtered_df["hotel"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                hotel_selection = st.selectbox(
+                    "🏨 Hotel",
+                    ["All Hotels"] + hotel_options,
+                    key="filter_hotel"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # ARRIVAL YEAR — DROPDOWN
+        # -----------------------------------------------------------------------------------------
+
+        with col2:
+
+            if "arrival_date_year" in filtered_df.columns:
+
+                year_options = sorted(
+                    filtered_df["arrival_date_year"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                year_selection = st.selectbox(
+                    "📅 Arrival Year",
+                    ["All Years"] + year_options,
+                    key="filter_year"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # ARRIVAL MONTH — MULTISELECT
+        # -----------------------------------------------------------------------------------------
+
+        with col3:
+
+            if "arrival_date_month" in filtered_df.columns:
+
+                month_order = [
+                    "January",
+                    "February",
+                    "March",
+                    "April",
+                    "May",
+                    "June",
+                    "July",
+                    "August",
+                    "September",
+                    "October",
+                    "November",
+                    "December"
+                ]
+
+                available_months = (
+                    filtered_df["arrival_date_month"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                month_options = [
+                    month
+                    for month in month_order
+                    if month in available_months
+                ]
+
+                month_selection = st.multiselect(
+                    "📆 Arrival Month",
+                    month_options,
+                    default=month_options,
+                    key="filter_month"
+                )
+
+        # =========================================================================================
+        # SECOND ROW
+        # =========================================================================================
+
+        col4, col5, col6 = st.columns(3)
+
+        # -----------------------------------------------------------------------------------------
+        # CUSTOMER TYPE — DROPDOWN
+        # -----------------------------------------------------------------------------------------
+
+        with col4:
+
+            if "customer_type" in filtered_df.columns:
+
+                customer_options = sorted(
+                    filtered_df["customer_type"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                customer_selection = st.selectbox(
+                    "👥 Customer Type",
+                    ["All Customer Types"] + customer_options,
+                    key="filter_customer"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # MARKET SEGMENT — MULTISELECT
+        # -----------------------------------------------------------------------------------------
+
+        with col5:
+
+            if "market_segment" in filtered_df.columns:
+
+                segment_options = sorted(
+                    filtered_df["market_segment"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                segment_selection = st.multiselect(
+                    "📢 Market Segment",
+                    segment_options,
+                    default=segment_options,
+                    key="filter_segment"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # DISTRIBUTION CHANNEL — MULTISELECT
+        # -----------------------------------------------------------------------------------------
+
+        with col6:
+
+            if "distribution_channel" in filtered_df.columns:
+
+                channel_options = sorted(
+                    filtered_df["distribution_channel"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                channel_selection = st.multiselect(
+                    "📡 Distribution Channel",
+                    channel_options,
+                    default=channel_options,
+                    key="filter_channel"
+                )
+
+        # =========================================================================================
+        # THIRD ROW
+        # =========================================================================================
+
+        col7, col8, col9 = st.columns(3)
+
+        # -----------------------------------------------------------------------------------------
+        # CANCELLATION — DROPDOWN
+        # -----------------------------------------------------------------------------------------
+
+        with col7:
+
+            if "is_canceled" in filtered_df.columns:
+
+                cancellation_selection = st.selectbox(
+                    "❌ Booking Status",
+                    [
+                        "All Bookings",
+                        "Cancelled",
+                        "Not Cancelled"
+                    ],
+                    key="filter_cancellation"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # REPEAT GUEST — TOGGLE
+        # -----------------------------------------------------------------------------------------
+
+        with col8:
+
+            if "is_repeated_guest" in filtered_df.columns:
+
+                repeat_only = st.toggle(
+                    "🔁 Repeat Guests Only",
+                    value=False,
+                    key="filter_repeat_guest"
+                )
+
+        # -----------------------------------------------------------------------------------------
+        # MEAL TYPE — DROPDOWN
+        # -----------------------------------------------------------------------------------------
+
+        with col9:
+
+            if "meal" in filtered_df.columns:
+
+                meal_options = sorted(
+                    filtered_df["meal"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                meal_selection = st.selectbox(
+                    "🍽️ Meal Type",
+                    ["All Meal Types"] + meal_options,
+                    key="filter_meal"
+                )
+
+        # =========================================================================================
+        # ⚙️ ADVANCED FILTERS
+        # =========================================================================================
+
+        st.markdown("")
+
+        with st.expander("⚙️ Advanced Filters", expanded=False):
+
+            st.caption(
+                "Use these controls when you need more detailed analysis."
+            )
+
+            # -------------------------------------------------------------------------------------
+            # LEAD TIME SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "lead_time" in filtered_df.columns:
+
+                lead_data = pd.to_numeric(
+                    filtered_df["lead_time"],
+                    errors="coerce"
+                ).dropna()
+
+                if not lead_data.empty:
+
+                    lead_min = int(lead_data.min())
+                    lead_max = int(lead_data.max())
+
+                    if lead_min < lead_max:
+
+                        lead_selection = st.slider(
+                            "⏳ Lead Time (days)",
+                            min_value=lead_min,
+                            max_value=lead_max,
+                            value=(lead_min, lead_max),
+                            key="filter_lead_time"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # ADR SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "adr" in filtered_df.columns:
+
+                adr_data = pd.to_numeric(
+                    filtered_df["adr"],
+                    errors="coerce"
+                ).dropna()
+
+                if not adr_data.empty:
+
+                    adr_min = float(adr_data.min())
+                    adr_max = float(adr_data.max())
+
+                    if adr_min < adr_max:
+
+                        adr_selection = st.slider(
+                            "💰 ADR Range",
+                            min_value=adr_min,
+                            max_value=adr_max,
+                            value=(adr_min, adr_max),
+                            step=1.0,
+                            key="filter_adr"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # STAY DURATION SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "stay_duration" in filtered_df.columns:
+
+                stay_data = pd.to_numeric(
+                    filtered_df["stay_duration"],
+                    errors="coerce"
+                ).dropna()
+
+                if not stay_data.empty:
+
+                    stay_min = int(stay_data.min())
+                    stay_max = int(stay_data.max())
+
+                    if stay_min < stay_max:
+
+                        stay_selection = st.slider(
+                            "🛏️ Stay Duration (nights)",
+                            min_value=stay_min,
+                            max_value=stay_max,
+                            value=(stay_min, stay_max),
+                            key="filter_stay_duration"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # WEEK NIGHTS SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "stays_in_week_nights" in filtered_df.columns:
+
+                week_data = pd.to_numeric(
+                    filtered_df["stays_in_week_nights"],
+                    errors="coerce"
+                ).dropna()
+
+                if not week_data.empty:
+
+                    week_min = int(week_data.min())
+                    week_max = int(week_data.max())
+
+                    if week_min < week_max:
+
+                        week_selection = st.slider(
+                            "🌙 Week Nights",
+                            min_value=week_min,
+                            max_value=week_max,
+                            value=(week_min, week_max),
+                            key="filter_week_nights"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # WEEKEND NIGHTS SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "stays_in_weekend_nights" in filtered_df.columns:
+
+                weekend_data = pd.to_numeric(
+                    filtered_df["stays_in_weekend_nights"],
+                    errors="coerce"
+                ).dropna()
+
+                if not weekend_data.empty:
+
+                    weekend_min = int(weekend_data.min())
+                    weekend_max = int(weekend_data.max())
+
+                    if weekend_min < weekend_max:
+
+                        weekend_selection = st.slider(
+                            "🌴 Weekend Nights",
+                            min_value=weekend_min,
+                            max_value=weekend_max,
+                            value=(weekend_min, weekend_max),
+                            key="filter_weekend_nights"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # RESERVED ROOM TYPE — MULTISELECT
+            # -------------------------------------------------------------------------------------
+
+            if "reserved_room_type" in filtered_df.columns:
+
+                room_options = sorted(
+                    filtered_df["reserved_room_type"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                room_selection = st.multiselect(
+                    "🏷️ Reserved Room Type",
+                    room_options,
+                    default=room_options,
+                    key="filter_reserved_room"
+                )
+
+            # -------------------------------------------------------------------------------------
+            # ASSIGNED ROOM TYPE — MULTISELECT
+            # -------------------------------------------------------------------------------------
+
+            if "assigned_room_type" in filtered_df.columns:
+
+                assigned_options = sorted(
+                    filtered_df["assigned_room_type"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                assigned_selection = st.multiselect(
+                    "🛏️ Assigned Room Type",
+                    assigned_options,
+                    default=assigned_options,
+                    key="filter_assigned_room"
+                )
+
+            # -------------------------------------------------------------------------------------
+            # DEPOSIT TYPE — DROPDOWN
+            # -------------------------------------------------------------------------------------
+
+            if "deposit_type" in filtered_df.columns:
+
+                deposit_options = sorted(
+                    filtered_df["deposit_type"]
+                    .dropna()
+                    .unique()
+                    .tolist()
+                )
+
+                deposit_selection = st.selectbox(
+                    "💳 Deposit Type",
+                    ["All Deposit Types"] + deposit_options,
+                    key="filter_deposit"
+                )
+
+            # -------------------------------------------------------------------------------------
+            # BOOKING CHANGES — SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "booking_changes" in filtered_df.columns:
+
+                changes_data = pd.to_numeric(
+                    filtered_df["booking_changes"],
+                    errors="coerce"
+                ).dropna()
+
+                if not changes_data.empty:
+
+                    changes_min = int(changes_data.min())
+                    changes_max = int(changes_data.max())
+
+                    if changes_min < changes_max:
+
+                        changes_selection = st.slider(
+                            "🔄 Booking Changes",
+                            min_value=changes_min,
+                            max_value=changes_max,
+                            value=(changes_min, changes_max),
+                            key="filter_booking_changes"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # WAITING LIST — SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "days_in_waiting_list" in filtered_df.columns:
+
+                waiting_data = pd.to_numeric(
+                    filtered_df["days_in_waiting_list"],
+                    errors="coerce"
+                ).dropna()
+
+                if not waiting_data.empty:
+
+                    waiting_min = int(waiting_data.min())
+                    waiting_max = int(waiting_data.max())
+
+                    if waiting_min < waiting_max:
+
+                        waiting_selection = st.slider(
+                            "⏱️ Days in Waiting List",
+                            min_value=waiting_min,
+                            max_value=waiting_max,
+                            value=(waiting_min, waiting_max),
+                            key="filter_waiting_list"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # SPECIAL REQUESTS — SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "total_of_special_requests" in filtered_df.columns:
+
+                request_data = pd.to_numeric(
+                    filtered_df["total_of_special_requests"],
+                    errors="coerce"
+                ).dropna()
+
+                if not request_data.empty:
+
+                    request_min = int(request_data.min())
+                    request_max = int(request_data.max())
+
+                    if request_min < request_max:
+
+                        request_selection = st.slider(
+                            "🛎️ Special Requests",
+                            min_value=request_min,
+                            max_value=request_max,
+                            value=(request_min, request_max),
+                            key="filter_special_requests"
+                        )
+
+            # -------------------------------------------------------------------------------------
+            # PARKING — SLIDER
+            # -------------------------------------------------------------------------------------
+
+            if "required_car_parking_spaces" in filtered_df.columns:
+
+                parking_data = pd.to_numeric(
+                    filtered_df["required_car_parking_spaces"],
+                    errors="coerce"
+                ).dropna()
+
+                if not parking_data.empty:
+
+                    parking_min = int(parking_data.min())
+                    parking_max = int(parking_data.max())
+
+                    if parking_min < parking_max:
+
+                        parking_selection = st.slider(
+                            "🚗 Car Parking Spaces",
+                            min_value=parking_min,
+                            max_value=parking_max,
+                            value=(parking_min, parking_max),
+                            key="filter_parking"
+                        )
+
+        # =========================================================================================
+        # APPLY MAIN FILTERS
+        # =========================================================================================
+
+        if "hotel" in filtered_df.columns:
+            if hotel_selection != "All Hotels":
+                filtered_df = filtered_df[
+                    filtered_df["hotel"] == hotel_selection
+                ]
+
+        if "arrival_date_year" in filtered_df.columns:
+            if year_selection != "All Years":
+                filtered_df = filtered_df[
+                    filtered_df["arrival_date_year"] == year_selection
+                ]
+
+        if "arrival_date_month" in filtered_df.columns:
+            if month_selection:
+                filtered_df = filtered_df[
+                    filtered_df["arrival_date_month"].isin(month_selection)
+                ]
+
+        if "customer_type" in filtered_df.columns:
+            if customer_selection != "All Customer Types":
+                filtered_df = filtered_df[
+                    filtered_df["customer_type"] == customer_selection
+                ]
+
+        if "market_segment" in filtered_df.columns:
+            if segment_selection:
+                filtered_df = filtered_df[
+                    filtered_df["market_segment"].isin(segment_selection)
+                ]
+
+        if "distribution_channel" in filtered_df.columns:
+            if channel_selection:
+                filtered_df = filtered_df[
+                    filtered_df["distribution_channel"].isin(channel_selection)
+                ]
+
+        if "is_canceled" in filtered_df.columns:
+
+            if cancellation_selection == "Cancelled":
+
+                filtered_df = filtered_df[
+                    filtered_df["is_canceled"] == 1
+                ]
+
+            elif cancellation_selection == "Not Cancelled":
+
+                filtered_df = filtered_df[
+                    filtered_df["is_canceled"] == 0
+                ]
+
+        if (
+            "is_repeated_guest" in filtered_df.columns
+            and repeat_only
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["is_repeated_guest"] == 1
+            ]
+
+        if "meal" in filtered_df.columns:
+            if meal_selection != "All Meal Types":
+                filtered_df = filtered_df[
+                    filtered_df["meal"] == meal_selection
+                ]
+
+        # =========================================================================================
+        # APPLY ADVANCED FILTERS
+        # =========================================================================================
+
+        if "lead_time" in filtered_df.columns and "lead_selection" in locals():
+
+            filtered_df = filtered_df[
+                filtered_df["lead_time"].between(
+                    lead_selection[0],
+                    lead_selection[1]
+                )
+            ]
+
+        if "adr" in filtered_df.columns and "adr_selection" in locals():
+
+            filtered_df = filtered_df[
+                filtered_df["adr"].between(
+                    adr_selection[0],
+                    adr_selection[1]
+                )
+            ]
+
+        if "stay_duration" in filtered_df.columns and "stay_selection" in locals():
+
+            filtered_df = filtered_df[
+                filtered_df["stay_duration"].between(
+                    stay_selection[0],
+                    stay_selection[1]
+                )
+            ]
+
+        if (
+            "stays_in_week_nights" in filtered_df.columns
+            and "week_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["stays_in_week_nights"].between(
+                    week_selection[0],
+                    week_selection[1]
+                )
+            ]
+
+        if (
+            "stays_in_weekend_nights" in filtered_df.columns
+            and "weekend_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["stays_in_weekend_nights"].between(
+                    weekend_selection[0],
+                    weekend_selection[1]
+                )
+            ]
+
+        if (
+            "reserved_room_type" in filtered_df.columns
+            and "room_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["reserved_room_type"].isin(
+                    room_selection
+                )
+            ]
+
+        if (
+            "assigned_room_type" in filtered_df.columns
+            and "assigned_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["assigned_room_type"].isin(
+                    assigned_selection
+                )
+            ]
+
+        if "deposit_type" in filtered_df.columns:
+
+            if deposit_selection != "All Deposit Types":
+
+                filtered_df = filtered_df[
+                    filtered_df["deposit_type"] == deposit_selection
+                ]
+
+        if (
+            "booking_changes" in filtered_df.columns
+            and "changes_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["booking_changes"].between(
+                    changes_selection[0],
+                    changes_selection[1]
+                )
+            ]
+
+        if (
+            "days_in_waiting_list" in filtered_df.columns
+            and "waiting_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["days_in_waiting_list"].between(
+                    waiting_selection[0],
+                    waiting_selection[1]
+                )
+            ]
+
+        if (
+            "total_of_special_requests" in filtered_df.columns
+            and "request_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["total_of_special_requests"].between(
+                    request_selection[0],
+                    request_selection[1]
+                )
+            ]
+
+        if (
+            "required_car_parking_spaces" in filtered_df.columns
+            and "parking_selection" in locals()
+        ):
+
+            filtered_df = filtered_df[
+                filtered_df["required_car_parking_spaces"].between(
+                    parking_selection[0],
+                    parking_selection[1]
+                )
+            ]
+
+        # =========================================================================================
+        # FILTER SUMMARY
+        # =========================================================================================
+
+        st.divider()
+
+        result_col1, result_col2, result_col3 = st.columns(3)
+
+        with result_col1:
+            st.metric(
+                "Filtered Bookings",
+                f"{len(filtered_df):,}"
+            )
+
+        with result_col2:
+            st.metric(
+                "Original Bookings",
+                f"{len(df):,}"
+            )
+
+        with result_col3:
+
+            percentage = (
+                len(filtered_df) / len(df) * 100
+                if len(df) > 0
+                else 0
+            )
+
+            st.metric(
+                "Data Remaining",
+                f"{percentage:.1f}%"
+            )
+
+    return filtered_df
+
 #=========================================================================================================================================================================================================
 #DATA PREPARATION BUTTON
 #=========================================================================================================================================================================================================
@@ -643,6 +1427,11 @@ with st.sidebar:
     )
 
     prepared_df = st.session_state.get("prepared_df")
+    if prepared_df is not None and not prepared_df.empty:
+        filtered_df = show_global_filters(prepared_df)
+        st.session_state["filtered_df"] = filtered_df
+    else:
+        filtered_df = None
 
     with st.expander("📊 Dataset Information", expanded=False):
         if prepared_df is not None:
