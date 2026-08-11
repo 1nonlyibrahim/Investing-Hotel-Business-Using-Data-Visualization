@@ -5631,6 +5631,821 @@ def render_stay_duration_analysis_page(df):
             recommendation
         )
 
+# =================================================================================================
+# 👥 CUSTOMER & MARKET ANALYSIS
+# =================================================================================================
+
+def render_customer_market_analysis_page(df):
+
+    # ---------------------------------------------------------------------------------------------
+    # CHECK DATASET
+    # ---------------------------------------------------------------------------------------------
+
+    if df is None or df.empty:
+        st.warning("⚠️ No prepared dataset is available.")
+        return
+
+    data = df.copy()
+
+    # ---------------------------------------------------------------------------------------------
+    # PAGE HEADER
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown(
+        """
+        <h1 style="
+            text-align:center;
+            color:white;
+            font-size:40px;
+            font-weight:700;
+            margin-bottom:5px;
+        ">
+            👥 Customer & Market Analysis
+        </h1>
+
+        <p style="
+            text-align:center;
+            color:#B8B8B8;
+            font-size:16px;
+            margin-bottom:30px;
+        ">
+            Understand customer behavior, market segments, booking channels,
+            repeat guests and their impact on hotel performance.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # PREPARE COLUMNS
+    # ---------------------------------------------------------------------------------------------
+
+    if "is_canceled" in data.columns:
+
+        data["is_canceled"] = pd.to_numeric(
+            data["is_canceled"],
+            errors="coerce"
+        ).fillna(0)
+
+    if "adr" in data.columns:
+
+        data["adr"] = pd.to_numeric(
+            data["adr"],
+            errors="coerce"
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # KPI CALCULATIONS
+    # ---------------------------------------------------------------------------------------------
+
+    total_bookings = len(data)
+
+    # Customer type
+    if "customer_type" in data.columns:
+
+        unique_customer_types = data[
+            "customer_type"
+        ].nunique()
+
+    else:
+
+        unique_customer_types = 0
+
+    # Market segment
+    if "market_segment" in data.columns:
+
+        unique_market_segments = data[
+            "market_segment"
+        ].nunique()
+
+    else:
+
+        unique_market_segments = 0
+
+    # Repeat guest rate
+    if "is_repeated_guest" in data.columns:
+
+        repeated_guest = pd.to_numeric(
+            data["is_repeated_guest"],
+            errors="coerce"
+        ).fillna(0)
+
+        repeat_guest_rate = (
+            (repeated_guest == 1).mean() * 100
+        )
+
+    else:
+
+        repeat_guest_rate = 0
+
+    # Average ADR
+    if "adr" in data.columns:
+
+        average_adr = data["adr"].mean()
+
+    else:
+
+        average_adr = 0
+
+    # ---------------------------------------------------------------------------------------------
+    # KPI CARDS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📌 Customer & Market KPIs")
+
+    kpi1, kpi2, kpi3, kpi4, kpi5 = st.columns(5)
+
+    with kpi1:
+
+        st.metric(
+            "Total Bookings",
+            f"{total_bookings:,}"
+        )
+
+    with kpi2:
+
+        st.metric(
+            "Customer Types",
+            f"{unique_customer_types}"
+        )
+
+    with kpi3:
+
+        st.metric(
+            "Market Segments",
+            f"{unique_market_segments}"
+        )
+
+    with kpi4:
+
+        st.metric(
+            "Repeat Guest Rate",
+            f"{repeat_guest_rate:.1f}%"
+        )
+
+    with kpi5:
+
+        st.metric(
+            "Average ADR",
+            f"{average_adr:,.2f}"
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # CUSTOMER TYPE ANALYSIS
+    # ---------------------------------------------------------------------------------------------
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown("### 👥 Bookings by Customer Type")
+
+        if "customer_type" in data.columns:
+
+            customer_counts = (
+                data["customer_type"]
+                .value_counts()
+                .reset_index()
+            )
+
+            customer_counts.columns = [
+                "Customer Type",
+                "Bookings"
+            ]
+
+            fig = px.bar(
+                customer_counts,
+                x="Customer Type",
+                y="Bookings",
+                text="Bookings"
+            )
+
+            fig.update_traces(
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Bookings"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type column is not available."
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # CUSTOMER TYPE ADR
+    # ---------------------------------------------------------------------------------------------
+
+    with col2:
+
+        st.markdown("### 💰 ADR by Customer Type")
+
+        if (
+            "customer_type" in data.columns
+            and
+            "adr" in data.columns
+        ):
+
+            customer_adr = (
+                data.groupby(
+                    "customer_type"
+                )["adr"]
+                .mean()
+                .reset_index()
+            )
+
+            fig = px.bar(
+                customer_adr,
+                x="customer_type",
+                y="adr",
+                text="adr"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.2f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Customer Type",
+                yaxis_title="Average ADR"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Customer type or ADR column is not available."
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # CUSTOMER TYPE CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### ❌ Cancellation Rate by Customer Type")
+
+    if (
+        "customer_type" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        customer_cancel = (
+            data.groupby(
+                "customer_type"
+            )["is_canceled"]
+            .mean()
+            .mul(100)
+            .reset_index()
+        )
+
+        customer_cancel.columns = [
+            "Customer Type",
+            "Cancellation Rate"
+        ]
+
+        fig = px.bar(
+            customer_cancel,
+            x="Customer Type",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Customer Type",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Required customer cancellation columns are not available."
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # MARKET SEGMENT ANALYSIS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📢 Market Segment Analysis")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown("#### 📊 Bookings by Market Segment")
+
+        if "market_segment" in data.columns:
+
+            segment_counts = (
+                data["market_segment"]
+                .value_counts()
+                .reset_index()
+            )
+
+            segment_counts.columns = [
+                "Market Segment",
+                "Bookings"
+            ]
+
+            fig = px.bar(
+                segment_counts,
+                x="Market Segment",
+                y="Bookings",
+                text="Bookings"
+            )
+
+            fig.update_traces(
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Bookings"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment column is not available."
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # MARKET SEGMENT ADR
+    # ---------------------------------------------------------------------------------------------
+
+    with col2:
+
+        st.markdown("#### 💰 ADR by Market Segment")
+
+        if (
+            "market_segment" in data.columns
+            and
+            "adr" in data.columns
+        ):
+
+            segment_adr = (
+                data.groupby(
+                    "market_segment"
+                )["adr"]
+                .mean()
+                .reset_index()
+                .sort_values(
+                    "adr",
+                    ascending=False
+                )
+            )
+
+            fig = px.bar(
+                segment_adr,
+                x="market_segment",
+                y="adr",
+                text="adr"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.2f}",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Market Segment",
+                yaxis_title="Average ADR"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Market segment or ADR column is not available."
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # MARKET SEGMENT CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### ❌ Cancellation Rate by Market Segment")
+
+    if (
+        "market_segment" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        segment_cancel = (
+            data.groupby(
+                "market_segment"
+            )["is_canceled"]
+            .mean()
+            .mul(100)
+            .reset_index()
+        )
+
+        segment_cancel.columns = [
+            "Market Segment",
+            "Cancellation Rate"
+        ]
+
+        fig = px.bar(
+            segment_cancel,
+            x="Market Segment",
+            y="Cancellation Rate",
+            text="Cancellation Rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Market Segment",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # DISTRIBUTION CHANNEL
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📡 Distribution Channel Analysis")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+
+        st.markdown("#### 📊 Bookings by Distribution Channel")
+
+        if "distribution_channel" in data.columns:
+
+            channel_counts = (
+                data["distribution_channel"]
+                .value_counts()
+                .reset_index()
+            )
+
+            channel_counts.columns = [
+                "Distribution Channel",
+                "Bookings"
+            ]
+
+            fig = px.bar(
+                channel_counts,
+                x="Distribution Channel",
+                y="Bookings",
+                text="Bookings"
+            )
+
+            fig.update_traces(
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Distribution Channel",
+                yaxis_title="Bookings"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Distribution channel column is not available."
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # CHANNEL CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    with col2:
+
+        st.markdown("#### ❌ Cancellation Rate by Channel")
+
+        if (
+            "distribution_channel" in data.columns
+            and
+            "is_canceled" in data.columns
+        ):
+
+            channel_cancel = (
+                data.groupby(
+                    "distribution_channel"
+                )["is_canceled"]
+                .mean()
+                .mul(100)
+                .reset_index()
+            )
+
+            channel_cancel.columns = [
+                "Distribution Channel",
+                "Cancellation Rate"
+            ]
+
+            fig = px.bar(
+                channel_cancel,
+                x="Distribution Channel",
+                y="Cancellation Rate",
+                text="Cancellation Rate"
+            )
+
+            fig.update_traces(
+                texttemplate="%{text:.1f}%",
+                textposition="outside"
+            )
+
+            fig.update_layout(
+                xaxis_title="Distribution Channel",
+                yaxis_title="Cancellation Rate (%)"
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        else:
+
+            st.info(
+                "Required distribution channel columns are not available."
+            )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # REPEAT GUEST ANALYSIS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 🔁 Repeat Guest Analysis")
+
+    if "is_repeated_guest" in data.columns:
+
+        data["Guest Type"] = data[
+            "is_repeated_guest"
+        ].map({
+            0: "New Guest",
+            1: "Repeat Guest"
+        })
+
+        col1, col2 = st.columns(2)
+
+        with col1:
+
+            guest_counts = (
+                data["Guest Type"]
+                .value_counts()
+                .reset_index()
+            )
+
+            guest_counts.columns = [
+                "Guest Type",
+                "Bookings"
+            ]
+
+            fig = px.pie(
+                guest_counts,
+                names="Guest Type",
+                values="Bookings",
+                hole=0.55
+            )
+
+            st.plotly_chart(
+                fig,
+                width="stretch"
+            )
+
+        with col2:
+
+            if "is_canceled" in data.columns:
+
+                guest_cancel = (
+                    data.groupby(
+                        "Guest Type"
+                    )["is_canceled"]
+                    .mean()
+                    .mul(100)
+                    .reset_index()
+                )
+
+                guest_cancel.columns = [
+                    "Guest Type",
+                    "Cancellation Rate"
+                ]
+
+                fig = px.bar(
+                    guest_cancel,
+                    x="Guest Type",
+                    y="Cancellation Rate",
+                    text="Cancellation Rate"
+                )
+
+                fig.update_traces(
+                    texttemplate="%{text:.1f}%",
+                    textposition="outside"
+                )
+
+                fig.update_layout(
+                    xaxis_title="Guest Type",
+                    yaxis_title="Cancellation Rate (%)"
+                )
+
+                st.plotly_chart(
+                    fig,
+                    width="stretch"
+                )
+
+    else:
+
+        st.info(
+            "Repeat guest information is not available."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # DYNAMIC INSIGHTS
+    # ---------------------------------------------------------------------------------------------
+
+    st.divider()
+
+    st.markdown("### 📌 Key Customer & Market Insights")
+
+    insights = []
+
+    # Largest customer type
+    if "customer_type" in data.columns:
+
+        customer_counts = data[
+            "customer_type"
+        ].value_counts()
+
+        if not customer_counts.empty:
+
+            top_customer = customer_counts.idxmax()
+
+            top_customer_count = customer_counts.max()
+
+            insights.append(
+                f"👥 **{top_customer}** is the largest customer type "
+                f"with **{top_customer_count:,} bookings**."
+            )
+
+    # Largest market segment
+    if "market_segment" in data.columns:
+
+        segment_counts = data[
+            "market_segment"
+        ].value_counts()
+
+        if not segment_counts.empty:
+
+            top_segment = segment_counts.idxmax()
+
+            top_segment_count = segment_counts.max()
+
+            insights.append(
+                f"📢 **{top_segment}** is the largest market segment "
+                f"with **{top_segment_count:,} bookings**."
+            )
+
+    # Highest ADR segment
+    if (
+        "market_segment" in data.columns
+        and
+        "adr" in data.columns
+    ):
+
+        segment_adr = (
+            data.groupby(
+                "market_segment"
+            )["adr"]
+            .mean()
+        )
+
+        if not segment_adr.empty:
+
+            highest_adr_segment = segment_adr.idxmax()
+
+            highest_adr = segment_adr.max()
+
+            insights.append(
+                f"💰 **{highest_adr_segment}** has the highest average ADR "
+                f"at **{highest_adr:.2f}**."
+            )
+
+    # Highest cancellation segment
+    if (
+        "market_segment" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        segment_cancel = (
+            data.groupby(
+                "market_segment"
+            )["is_canceled"]
+            .mean()
+        )
+
+        if not segment_cancel.empty:
+
+            highest_cancel_segment = segment_cancel.idxmax()
+
+            highest_cancel_rate = (
+                segment_cancel.max() * 100
+            )
+
+            insights.append(
+                f"❌ **{highest_cancel_segment}** has the highest "
+                f"cancellation rate at **{highest_cancel_rate:.1f}%**."
+            )
+
+    # Repeat guests
+    if "is_repeated_guest" in data.columns:
+
+        insights.append(
+            f"🔁 Repeat guests represent approximately "
+            f"**{repeat_guest_rate:.1f}%** of bookings."
+        )
+
+    for insight in insights[:5]:
+
+        st.info(insight)
+
+    # ---------------------------------------------------------------------------------------------
+    # BUSINESS RECOMMENDATIONS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 💡 Business Recommendations")
+
+    st.success(
+        "📢 Focus marketing efforts on high-performing market segments while monitoring their cancellation behavior."
+    )
+
+    st.success(
+        "💰 Prioritize customer segments and channels that combine strong ADR with healthy booking volume."
+    )
+
+    st.success(
+        "❌ Review high-cancellation segments and consider stronger booking policies or deposit requirements."
+    )
+
+    st.success(
+        "🔁 Develop loyalty incentives to increase repeat guest bookings."
+    )
+
+    st.success(
+        "📡 Evaluate distribution channels based on both booking volume and cancellation risk."
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # FOOTNOTE
+    # ---------------------------------------------------------------------------------------------
+
+    st.caption(
+        "ℹ️ Insights are calculated dynamically from the currently filtered/prepared dataset."
+    )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -5652,3 +6467,6 @@ elif selected_page == "⏳ Lead Time Analysis":
 
 elif selected_page == "🛏️ Stay Duration":
     render_stay_duration_analysis_page(prepared_df)
+
+elif selected_page == "👥 Customer & Market Analysis":
+    render_customer_market_analysis_page(prepared_df)
