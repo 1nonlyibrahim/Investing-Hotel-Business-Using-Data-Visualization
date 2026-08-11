@@ -6446,6 +6446,672 @@ def render_customer_market_analysis_page(df):
         "ℹ️ Insights are calculated dynamically from the currently filtered/prepared dataset."
     )
 
+# =================================================================================================
+# 🔎 RELATIONSHIP ANALYSIS PAGE
+# =================================================================================================
+
+def render_relationship_analysis_page(df):
+
+    # ---------------------------------------------------------------------------------------------
+    # CHECK DATASET
+    # ---------------------------------------------------------------------------------------------
+
+    if df is None or df.empty:
+        st.warning("⚠️ No prepared dataset is available.")
+        return
+
+    data = df.copy()
+
+    # ---------------------------------------------------------------------------------------------
+    # PAGE HEADER
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown(
+        """
+        <h1 style="
+            text-align:center;
+            color:white;
+            font-size:40px;
+            font-weight:700;
+            margin-bottom:5px;
+        ">
+            🔎 Relationship Analysis
+        </h1>
+
+        <p style="
+            text-align:center;
+            color:#B8B8B8;
+            font-size:16px;
+            margin-bottom:30px;
+        ">
+            Explore relationships between booking behavior, pricing,
+            stay duration and cancellation risk.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # CREATE / PREPARE NUMERIC COLUMNS
+    # ---------------------------------------------------------------------------------------------
+
+    numeric_columns = [
+        "lead_time",
+        "adr",
+        "stays_in_weekend_nights",
+        "stays_in_week_nights",
+        "adults",
+        "children",
+        "babies",
+        "previous_cancellations",
+        "booking_changes",
+        "total_of_special_requests",
+        "is_canceled"
+    ]
+
+    available_numeric = []
+
+    for column in numeric_columns:
+
+        if column in data.columns:
+
+            data[column] = pd.to_numeric(
+                data[column],
+                errors="coerce"
+            )
+
+            available_numeric.append(column)
+
+    # ---------------------------------------------------------------------------------------------
+    # CREATE STAY DURATION
+    # ---------------------------------------------------------------------------------------------
+
+    if "stay_duration" not in data.columns:
+
+        if (
+            "stays_in_weekend_nights" in data.columns
+            and
+            "stays_in_week_nights" in data.columns
+        ):
+
+            data["stay_duration"] = (
+                data["stays_in_weekend_nights"].fillna(0)
+                +
+                data["stays_in_week_nights"].fillna(0)
+            )
+
+    if "stay_duration" in data.columns:
+
+        data["stay_duration"] = pd.to_numeric(
+            data["stay_duration"],
+            errors="coerce"
+        )
+
+        if "stay_duration" not in available_numeric:
+
+            available_numeric.append(
+                "stay_duration"
+            )
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 1 — CORRELATION HEATMAP
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📊 Correlation Overview")
+
+    correlation_columns = [
+        "lead_time",
+        "adr",
+        "stay_duration",
+        "adults",
+        "children",
+        "babies",
+        "previous_cancellations",
+        "booking_changes",
+        "total_of_special_requests",
+        "is_canceled"
+    ]
+
+    correlation_columns = [
+        column
+        for column in correlation_columns
+        if column in data.columns
+    ]
+
+    if len(correlation_columns) >= 2:
+
+        correlation_matrix = data[
+            correlation_columns
+        ].corr()
+
+        fig = px.imshow(
+            correlation_matrix,
+            text_auto=".2f",
+            aspect="auto",
+            title="Correlation Between Key Hotel Booking Variables"
+        )
+
+        fig.update_layout(
+            xaxis_title="Variables",
+            yaxis_title="Variables"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+        st.caption(
+            "Correlation values range from -1 to +1. "
+            "Correlation indicates association, not causation."
+        )
+
+    else:
+
+        st.info(
+            "Not enough numerical columns are available to calculate correlations."
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 2 — LEAD TIME VS CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### ⏳ Lead Time vs Cancellation")
+
+    if (
+        "lead_time" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        lead_cancel = (
+            data.groupby("lead_time")[
+                "is_canceled"
+            ]
+            .mean()
+            .reset_index()
+        )
+
+        lead_cancel["cancellation_rate"] = (
+            lead_cancel["is_canceled"] * 100
+        )
+
+        fig = px.scatter(
+            lead_cancel,
+            x="lead_time",
+            y="cancellation_rate",
+            trendline="ols"
+        )
+
+        fig.update_layout(
+            xaxis_title="Lead Time (Days)",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Lead time or cancellation data is not available."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 3 — ADR VS CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 💰 ADR vs Cancellation")
+
+    if (
+        "adr" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        adr_cancel = (
+            data.groupby("adr")[
+                "is_canceled"
+            ]
+            .mean()
+            .reset_index()
+        )
+
+        adr_cancel["cancellation_rate"] = (
+            adr_cancel["is_canceled"] * 100
+        )
+
+        # Remove extreme ADR values for clearer visualization
+        adr_cancel = adr_cancel[
+            adr_cancel["adr"] <= adr_cancel["adr"].quantile(0.99)
+        ]
+
+        fig = px.scatter(
+            adr_cancel,
+            x="adr",
+            y="cancellation_rate",
+            trendline="ols"
+        )
+
+        fig.update_layout(
+            xaxis_title="ADR",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "ADR or cancellation data is not available."
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 4 — STAY DURATION VS CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 🛏️ Stay Duration vs Cancellation")
+
+    if (
+        "stay_duration" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        stay_cancel = (
+            data.groupby("stay_duration")[
+                "is_canceled"
+            ]
+            .mean()
+            .reset_index()
+        )
+
+        stay_cancel["cancellation_rate"] = (
+            stay_cancel["is_canceled"] * 100
+        )
+
+        # Keep reasonable stay durations for visualization
+        stay_cancel = stay_cancel[
+            stay_cancel["stay_duration"] <= 30
+        ]
+
+        fig = px.bar(
+            stay_cancel,
+            x="stay_duration",
+            y="cancellation_rate"
+        )
+
+        fig.update_layout(
+            xaxis_title="Stay Duration (Nights)",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Stay duration or cancellation data is not available."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 5 — LEAD TIME VS ADR
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📈 Lead Time vs ADR")
+
+    if (
+        "lead_time" in data.columns
+        and
+        "adr" in data.columns
+    ):
+
+        lead_adr = data[
+            [
+                "lead_time",
+                "adr"
+            ]
+        ].dropna()
+
+        # Remove extreme values for a cleaner chart
+        if not lead_adr.empty:
+
+            lead_adr = lead_adr[
+                lead_adr["lead_time"]
+                <= lead_adr["lead_time"].quantile(0.99)
+            ]
+
+            lead_adr = lead_adr[
+                lead_adr["adr"]
+                <= lead_adr["adr"].quantile(0.99)
+            ]
+
+        fig = px.scatter(
+            lead_adr,
+            x="lead_time",
+            y="adr",
+            trendline="ols"
+        )
+
+        fig.update_layout(
+            xaxis_title="Lead Time (Days)",
+            yaxis_title="ADR"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Lead time or ADR data is not available."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 6 — SPECIAL REQUESTS VS CANCELLATION
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📝 Special Requests vs Cancellation")
+
+    if (
+        "total_of_special_requests" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        requests_cancel = (
+            data.groupby(
+                "total_of_special_requests"
+            )["is_canceled"]
+            .mean()
+            .reset_index()
+        )
+
+        requests_cancel["cancellation_rate"] = (
+            requests_cancel["is_canceled"] * 100
+        )
+
+        requests_cancel = requests_cancel[
+            requests_cancel[
+                "total_of_special_requests"
+            ] <= 5
+        ]
+
+        fig = px.bar(
+            requests_cancel,
+            x="total_of_special_requests",
+            y="cancellation_rate",
+            text="cancellation_rate"
+        )
+
+        fig.update_traces(
+            texttemplate="%{text:.1f}%",
+            textposition="outside"
+        )
+
+        fig.update_layout(
+            xaxis_title="Number of Special Requests",
+            yaxis_title="Cancellation Rate (%)"
+        )
+
+        st.plotly_chart(
+            fig,
+            width="stretch"
+        )
+
+    else:
+
+        st.info(
+            "Special requests or cancellation data is not available."
+        )
+
+    st.divider()
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 7 — KEY RELATIONSHIP INSIGHTS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📌 Key Relationship Insights")
+
+    insights = []
+
+    # Lead time and cancellation
+    if (
+        "lead_time" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        median_lead = data[
+            "lead_time"
+        ].median()
+
+        short_lead = data[
+            data["lead_time"] <= median_lead
+        ]
+
+        long_lead = data[
+            data["lead_time"] > median_lead
+        ]
+
+        if not short_lead.empty and not long_lead.empty:
+
+            short_cancel = (
+                short_lead["is_canceled"].mean() * 100
+            )
+
+            long_cancel = (
+                long_lead["is_canceled"].mean() * 100
+            )
+
+            if long_cancel > short_cancel:
+
+                insights.append(
+                    f"⏳ Bookings with longer lead times show a higher "
+                    f"cancellation rate ({long_cancel:.1f}%) compared with "
+                    f"shorter lead-time bookings ({short_cancel:.1f}%)."
+                )
+
+            else:
+
+                insights.append(
+                    f"⏳ Longer lead-time bookings do not show a higher "
+                    f"cancellation rate than shorter lead-time bookings."
+                )
+
+    # ADR and cancellation
+    if (
+        "adr" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        median_adr = data[
+            "adr"
+        ].median()
+
+        low_adr = data[
+            data["adr"] <= median_adr
+        ]
+
+        high_adr = data[
+            data["adr"] > median_adr
+        ]
+
+        if not low_adr.empty and not high_adr.empty:
+
+            low_cancel = (
+                low_adr["is_canceled"].mean() * 100
+            )
+
+            high_cancel = (
+                high_adr["is_canceled"].mean() * 100
+            )
+
+            insights.append(
+                f"💰 Cancellation rate is "
+                f"{high_cancel:.1f}% for higher-ADR bookings "
+                f"and {low_cancel:.1f}% for lower-ADR bookings."
+            )
+
+    # Stay duration
+    if (
+        "stay_duration" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        median_stay = data[
+            "stay_duration"
+        ].median()
+
+        short_stay = data[
+            data["stay_duration"] <= median_stay
+        ]
+
+        long_stay = data[
+            data["stay_duration"] > median_stay
+        ]
+
+        if not short_stay.empty and not long_stay.empty:
+
+            short_cancel = (
+                short_stay["is_canceled"].mean() * 100
+            )
+
+            long_cancel = (
+                long_stay["is_canceled"].mean() * 100
+            )
+
+            insights.append(
+                f"🛏️ Shorter-stay bookings have a "
+                f"{short_cancel:.1f}% cancellation rate, while "
+                f"longer-stay bookings have a "
+                f"{long_cancel:.1f}% cancellation rate."
+            )
+
+    # Special requests
+    if (
+        "total_of_special_requests" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        no_requests = data[
+            data["total_of_special_requests"] == 0
+        ]
+
+        with_requests = data[
+            data["total_of_special_requests"] > 0
+        ]
+
+        if not no_requests.empty and not with_requests.empty:
+
+            no_request_cancel = (
+                no_requests["is_canceled"].mean() * 100
+            )
+
+            request_cancel = (
+                with_requests["is_canceled"].mean() * 100
+            )
+
+            insights.append(
+                f"📝 Bookings with special requests have a "
+                f"{request_cancel:.1f}% cancellation rate compared with "
+                f"{no_request_cancel:.1f}% for bookings without special requests."
+            )
+
+    # Correlation insight
+    if (
+        "lead_time" in data.columns
+        and
+        "is_canceled" in data.columns
+    ):
+
+        correlation = data[
+            [
+                "lead_time",
+                "is_canceled"
+            ]
+        ].corr().iloc[0, 1]
+
+        if not pd.isna(correlation):
+
+            strength = abs(correlation)
+
+            if strength < 0.2:
+                relationship = "weak"
+            elif strength < 0.5:
+                relationship = "moderate"
+            else:
+                relationship = "strong"
+
+            insights.append(
+                f"📊 The correlation between lead time and cancellation "
+                f"is {correlation:.2f}, indicating a {relationship} relationship."
+            )
+
+    if insights:
+
+        for insight in insights[:5]:
+
+            st.info(insight)
+
+    else:
+
+        st.info(
+            "Not enough data is available to generate relationship insights."
+        )
+
+    # ---------------------------------------------------------------------------------------------
+    # SECTION 8 — BUSINESS RECOMMENDATIONS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 💡 Business Recommendations")
+
+    st.success(
+        "⏳ Monitor long-lead-time bookings because they may represent greater cancellation exposure."
+    )
+
+    st.success(
+        "💰 Review pricing patterns alongside cancellation behavior before making ADR changes."
+    )
+
+    st.success(
+        "🛏️ Evaluate stay-duration segments separately when developing pricing and promotional strategies."
+    )
+
+    st.success(
+        "📝 Use special-request behavior as an additional customer-behavior indicator rather than treating it as a direct cause of cancellation."
+    )
+
+    st.success(
+        "📊 Use correlation results to identify areas for further investigation, not as proof of causation."
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # DISCLAIMER
+    # ---------------------------------------------------------------------------------------------
+
+    st.caption(
+        "ℹ️ Correlation and relationship analysis identifies associations in the dataset. "
+        "It does not establish cause-and-effect relationships."
+    )
+
 #===========================================================================================================================================================================================================
 #page routing based on selected page
 #===========================================================================================================================================================================================================
@@ -6470,3 +7136,6 @@ elif selected_page == "🛏️ Stay Duration":
 
 elif selected_page == "👥 Customer & Market Analysis":
     render_customer_market_analysis_page(prepared_df)
+
+elif selected_page == "🔎 Relationship Analysis":
+    render_relationship_analysis_page(prepared_df)
