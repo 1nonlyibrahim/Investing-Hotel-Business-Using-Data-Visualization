@@ -152,15 +152,101 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+#=========================================================================================================================================================================================================
+# UPLOADER BOX
+#=========================================================================================================================================================================================================
+
+st.markdown(
+    """
+    <style>
+    /* Translucent red uploader box with white text */
+    div[data-testid="stFileUploader"] {
+        background: rgba(255, 77, 77, 0.20) !important; /* translucent red */
+        color: #ffffff !important;
+        border-radius: 10px !important;
+        padding: 12px !important;
+        border: 1px solid rgba(255,77,77,0.35) !important;
+        box-shadow: 0 6px 18px rgba(255,77,77,0.08) !important;
+    }
+    div[data-testid="stFileUploader"] label,
+    div[data-testid="stFileUploader"] .stMarkdown {
+        color: #ffffff !important;
+    }
+    div[data-testid="stFileUploader"] input[type="file"] {
+        color: #ffffff !important;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True,
+)
+
+uploaded_file = st.file_uploader(
+    "Click below to upload your CSV Dataset",
+    type=["csv"],
+    key="dataset_uploader",
+)
+
+if uploaded_file is None:
+    st.session_state["uploaded_file"] = None
+    st.session_state["uploaded_file_name"] = None
+    st.session_state["uploaded_file_id"] = None
+    st.session_state["raw_df"] = None
+    st.session_state["cleaned_df"] = None
+    st.session_state["original_df"] = None
+    st.session_state["data_prepared"] = False
+    st.session_state["show_processing"] = False
+    st.session_state["prep_popup_visible"] = False
+else:
+    st.session_state["uploaded_file"] = uploaded_file
+    current_file_id = get_uploaded_file_id(uploaded_file)
+    previous_file_id = st.session_state.get("uploaded_file_id")
+
+    if current_file_id != previous_file_id:
+        st.session_state["uploaded_file_id"] = current_file_id
+        st.session_state["uploaded_file_name"] = uploaded_file.name
+        st.session_state["data_prepared"] = False
+        st.session_state["show_processing"] = False
+        st.session_state["prep_popup_visible"] = False
+        st.session_state["cleaned_df"] = None
+        st.session_state["original_df"] = None
+
+        try:
+            uploaded_file.seek(0)
+            raw_df = pd.read_csv(
+                uploaded_file,
+                encoding="utf-8",
+                encoding_errors="replace",
+                low_memory=False,
+            )
+            st.session_state["raw_df"] = raw_df
+            show_notification("📄 Dataset selected. Click below to begin preparation.")
+        except Exception:
+            try:
+                uploaded_file.seek(0)
+                raw_df = pd.read_csv(
+                    uploaded_file,
+                    encoding="latin-1",
+                    low_memory=False,
+                )
+                st.session_state["raw_df"] = raw_df
+                show_notification("📄 Dataset selected. Click below to begin preparation.")
+            except Exception as e:
+                st.session_state["raw_df"] = None
+                st.error("❌ Could not read the uploaded CSV file.")
+                st.caption("Please make sure the uploaded file is a valid CSV and uses the expected Hotel Booking dataset format.")
+                st.session_state["prep_popup_visible"] = False
+                st.session_state["show_processing"] = False
+                st.session_state["data_prepared"] = False
+                st.code(str(e))
+    else:
+        st.session_state["uploaded_file_name"] = uploaded_file.name
+
 # =================================================================================================
 # 🎛️ PROFESSIONAL GLOBAL FILTERS
 # =================================================================================================
 st.markdown(
         """
-        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>Filters</div>
-        <div style='font-size:13px;color:#999999;line-height:1.5;margin-bottom:12px;'>
-            This section shows how the uploaded dataset was validated and prepared before analysis.
-        </div>
+        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>FILTERS</div>
         """,
         unsafe_allow_html=True,
     )
@@ -944,95 +1030,6 @@ def show_global_filters(df):
             )
 
     return filtered_df
-
-#=========================================================================================================================================================================================================
-# UPLOADER BOX
-#=========================================================================================================================================================================================================
-
-st.markdown(
-    """
-    <style>
-    /* Translucent red uploader box with white text */
-    div[data-testid="stFileUploader"] {
-        background: rgba(255, 77, 77, 0.20) !important; /* translucent red */
-        color: #ffffff !important;
-        border-radius: 10px !important;
-        padding: 12px !important;
-        border: 1px solid rgba(255,77,77,0.35) !important;
-        box-shadow: 0 6px 18px rgba(255,77,77,0.08) !important;
-    }
-    div[data-testid="stFileUploader"] label,
-    div[data-testid="stFileUploader"] .stMarkdown {
-        color: #ffffff !important;
-    }
-    div[data-testid="stFileUploader"] input[type="file"] {
-        color: #ffffff !important;
-    }
-    </style>
-    """,
-    unsafe_allow_html=True,
-)
-
-uploaded_file = st.file_uploader(
-    "Click below to upload your CSV Dataset",
-    type=["csv"],
-    key="dataset_uploader",
-)
-
-if uploaded_file is None:
-    st.session_state["uploaded_file"] = None
-    st.session_state["uploaded_file_name"] = None
-    st.session_state["uploaded_file_id"] = None
-    st.session_state["raw_df"] = None
-    st.session_state["cleaned_df"] = None
-    st.session_state["original_df"] = None
-    st.session_state["data_prepared"] = False
-    st.session_state["show_processing"] = False
-    st.session_state["prep_popup_visible"] = False
-else:
-    st.session_state["uploaded_file"] = uploaded_file
-    current_file_id = get_uploaded_file_id(uploaded_file)
-    previous_file_id = st.session_state.get("uploaded_file_id")
-
-    if current_file_id != previous_file_id:
-        st.session_state["uploaded_file_id"] = current_file_id
-        st.session_state["uploaded_file_name"] = uploaded_file.name
-        st.session_state["data_prepared"] = False
-        st.session_state["show_processing"] = False
-        st.session_state["prep_popup_visible"] = False
-        st.session_state["cleaned_df"] = None
-        st.session_state["original_df"] = None
-
-        try:
-            uploaded_file.seek(0)
-            raw_df = pd.read_csv(
-                uploaded_file,
-                encoding="utf-8",
-                encoding_errors="replace",
-                low_memory=False,
-            )
-            st.session_state["raw_df"] = raw_df
-            show_notification("📄 Dataset selected. Click below to begin preparation.")
-        except Exception:
-            try:
-                uploaded_file.seek(0)
-                raw_df = pd.read_csv(
-                    uploaded_file,
-                    encoding="latin-1",
-                    low_memory=False,
-                )
-                st.session_state["raw_df"] = raw_df
-                show_notification("📄 Dataset selected. Click below to begin preparation.")
-            except Exception as e:
-                st.session_state["raw_df"] = None
-                st.error("❌ Could not read the uploaded CSV file.")
-                st.caption("Please make sure the uploaded file is a valid CSV and uses the expected Hotel Booking dataset format.")
-                st.session_state["prep_popup_visible"] = False
-                st.session_state["show_processing"] = False
-                st.session_state["data_prepared"] = False
-                st.code(str(e))
-    else:
-        st.session_state["uploaded_file_name"] = uploaded_file.name
 
 #=========================================================================================================================================================================================================
 #DATA PREPARATION BUTTON
