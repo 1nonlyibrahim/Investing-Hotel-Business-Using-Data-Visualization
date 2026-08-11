@@ -5638,55 +5638,27 @@ def render_stay_duration_analysis_page(df):
 
 def render_revenue_analysis_page(df):
 
+    # ---------------------------------------------------------------------------------------------
+    # CHECK DATASET
+    # ---------------------------------------------------------------------------------------------
+
     if df is None or df.empty:
-        st.info("📂 Please upload and prepare your dataset first.")
+        st.warning("⚠️ No prepared dataset is available.")
         return
 
     data = df.copy()
 
-    # =============================================================================================
-    # PAGE HEADER
-    # =============================================================================================
-
-    st.markdown(
-        """
-        <h2 style="
-            color: white;
-            font-weight: bold;
-            text-align: center;
-            font-size: 40px;
-            margin-bottom: 0.25rem;
-        ">
-            💰 Revenue Analysis
-        </h2>
-
-        <p style="
-            color: white;
-            margin-top: 0;
-        ">
-            Analyze estimated hotel revenue, ADR performance, revenue trends,
-            and revenue exposure from cancelled bookings.
-        </p>
-        """,
-        unsafe_allow_html=True
-    )
-
-    # =============================================================================================
-    # REQUIRED ADR COLUMN
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # CHECK ADR
+    # ---------------------------------------------------------------------------------------------
 
     if "adr" not in data.columns:
-
         st.error(
-            "❌ The required 'adr' column is not available in the prepared dataset."
+            "❌ Required revenue column 'adr' is not available in the prepared dataset."
         )
-
         return
 
-    # =============================================================================================
-    # ADR PREPARATION
-    # =============================================================================================
-
+    # Convert ADR to numeric
     data["adr"] = pd.to_numeric(
         data["adr"],
         errors="coerce"
@@ -5696,98 +5668,59 @@ def render_revenue_analysis_page(df):
         subset=["adr"]
     ).copy()
 
-    # Remove negative ADR values
+    # Remove negative ADR
     data["adr"] = data["adr"].clip(lower=0)
 
-    # =============================================================================================
-    # STAY DURATION
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # CREATE STAY DURATION IF REQUIRED
+    # ---------------------------------------------------------------------------------------------
 
-    normalized_columns = {
-        str(col).strip().lower().replace(" ", "").replace("_", ""): col
-        for col in data.columns
-    }
+    if "stay_duration" not in data.columns:
 
-    stay_duration_column = None
-    weekend_nights_column = None
-    week_nights_column = None
+        if (
+            "stays_in_weekend_nights" in data.columns
+            and
+            "stays_in_week_nights" in data.columns
+        ):
 
-    for candidate in [
-        "stayduration",
+            data["stays_in_weekend_nights"] = pd.to_numeric(
+                data["stays_in_weekend_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["stays_in_week_nights"] = pd.to_numeric(
+                data["stays_in_week_nights"],
+                errors="coerce"
+            ).fillna(0)
+
+            data["stay_duration"] = (
+                data["stays_in_weekend_nights"]
+                +
+                data["stays_in_week_nights"]
+            )
+
+        else:
+
+            st.error(
+                "❌ Stay duration information is not available. "
+                "The dataset must contain 'stay_duration' or both "
+                "'stays_in_weekend_nights' and 'stays_in_week_nights'."
+            )
+            return
+
+    # Clean stay duration
+    data["stay_duration"] = pd.to_numeric(
+        data["stay_duration"],
+        errors="coerce"
+    ).fillna(0)
+
+    data["stay_duration"] = data[
         "stay_duration"
-    ]:
+    ].clip(lower=0)
 
-        if candidate in normalized_columns:
-            stay_duration_column = normalized_columns[candidate]
-            break
-
-    for candidate in [
-        "staysinweekendnights",
-        "stays_in_weekend_nights",
-        "weekendnights"
-    ]:
-
-        if candidate in normalized_columns:
-            weekend_nights_column = normalized_columns[candidate]
-            break
-
-    for candidate in [
-        "staysinweeknights",
-        "stays_in_week_nights",
-        "weeknights"
-    ]:
-
-        if candidate in normalized_columns:
-            week_nights_column = normalized_columns[candidate]
-            break
-
-    if stay_duration_column is not None:
-
-        data["stay_duration"] = pd.to_numeric(
-            data[stay_duration_column],
-            errors="coerce"
-        ).fillna(0)
-
-    elif weekend_nights_column is not None and week_nights_column is not None:
-
-        data["stay_duration"] = (
-            pd.to_numeric(
-                data[weekend_nights_column],
-                errors="coerce"
-            ).fillna(0)
-            +
-            pd.to_numeric(
-                data[week_nights_column],
-                errors="coerce"
-            ).fillna(0)
-        )
-
-    elif weekend_nights_column is not None:
-
-        data["stay_duration"] = pd.to_numeric(
-            data[weekend_nights_column],
-            errors="coerce"
-        ).fillna(0)
-
-    elif week_nights_column is not None:
-
-        data["stay_duration"] = pd.to_numeric(
-            data[week_nights_column],
-            errors="coerce"
-        ).fillna(0)
-
-    else:
-
-        st.error(
-            "❌ Stay duration information is not available. "
-            "Please create a 'stay_duration' column or provide weekend/week night columns during data preparation."
-        )
-
-        return
-
-    # =============================================================================================
-    # CANCELLATION
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # CANCELLATION COLUMN
+    # ---------------------------------------------------------------------------------------------
 
     if "is_canceled" in data.columns:
 
@@ -5796,17 +5729,18 @@ def render_revenue_analysis_page(df):
             errors="coerce"
         ).fillna(0)
 
-        data["is_canceled"] = data[
-            "is_canceled"
-        ].astype(int)
+        data["is_canceled"] = (
+            data["is_canceled"]
+            .astype(int)
+        )
 
     else:
 
         data["is_canceled"] = 0
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # ESTIMATED REVENUE
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
     data["estimated_revenue"] = (
         data["adr"]
@@ -5814,32 +5748,34 @@ def render_revenue_analysis_page(df):
         data["stay_duration"]
     )
 
-    # =============================================================================================
-    # CANCELLED REVENUE
-    # =============================================================================================
-
+    # Revenue associated with cancelled bookings
     data["cancelled_revenue"] = (
         data["estimated_revenue"]
         *
         data["is_canceled"]
     )
 
-    # =============================================================================================
-    # CONFIRMED REVENUE
-    # =============================================================================================
-
+    # Revenue associated with confirmed bookings
     data["confirmed_revenue"] = (
         data["estimated_revenue"]
         *
         (1 - data["is_canceled"])
     )
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # KPI CALCULATIONS
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
-    total_estimated_revenue = data[
+    total_revenue = data[
         "estimated_revenue"
+    ].sum()
+
+    confirmed_revenue = data[
+        "confirmed_revenue"
+    ].sum()
+
+    cancelled_revenue = data[
+        "cancelled_revenue"
     ].sum()
 
     average_adr = data[
@@ -5854,92 +5790,101 @@ def render_revenue_analysis_page(df):
         "adr"
     ].max()
 
-    cancelled_revenue = data[
-        "cancelled_revenue"
-    ].sum()
-
-    confirmed_revenue = data[
-        "confirmed_revenue"
-    ].sum()
-
-    # =============================================================================================
-    # REVENUE EXPOSURE %
-    # =============================================================================================
-
     revenue_exposure = (
         cancelled_revenue
         /
-        total_estimated_revenue
+        total_revenue
         *
         100
-        if total_estimated_revenue > 0
+        if total_revenue > 0
         else 0
     )
 
-    # =============================================================================================
-    # KPI DISPLAY
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # PAGE HEADER
+    # ---------------------------------------------------------------------------------------------
 
     st.markdown(
         """
-        <h3 style="color: white; font-weight: bold;">
-            📌 Revenue KPIs
-        </h3>
+        <h1 style="
+            text-align:center;
+            color:white;
+            font-size:40px;
+            font-weight:700;
+            margin-bottom:5px;
+        ">
+            💰 Revenue Analysis
+        </h1>
+
+        <p style="
+            text-align:center;
+            color:#B8B8B8;
+            font-size:16px;
+            margin-bottom:30px;
+        ">
+            Analyze estimated revenue, ADR performance, cancellation exposure,
+            hotel performance and revenue trends.
+        </p>
         """,
         unsafe_allow_html=True
     )
 
+    # ---------------------------------------------------------------------------------------------
+    # KPI CARDS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### 📌 Revenue KPIs")
+
     kpi1, kpi2, kpi3 = st.columns(3)
-    kpi4, kpi5 = st.columns(2)
+    kpi4, kpi5, kpi6 = st.columns(3)
 
     with kpi1:
-
         st.metric(
             "Estimated Revenue",
-            f"{total_estimated_revenue:,.2f}"
+            f"{total_revenue:,.2f}"
         )
 
     with kpi2:
+        st.metric(
+            "Confirmed Revenue",
+            f"{confirmed_revenue:,.2f}"
+        )
 
+    with kpi3:
+        st.metric(
+            "Revenue Lost to Cancellation",
+            f"{cancelled_revenue:,.2f}"
+        )
+
+    with kpi4:
         st.metric(
             "Average ADR",
             f"{average_adr:,.2f}"
         )
 
-    with kpi3:
-
+    with kpi5:
         st.metric(
             "Median ADR",
             f"{median_adr:,.2f}"
         )
 
-    with kpi4:
-
+    with kpi6:
         st.metric(
-            "Maximum ADR",
-            f"{maximum_adr:,.2f}"
-        )
-
-    with kpi5:
-
-        st.metric(
-            "Revenue Exposed to Cancellation",
+            "Revenue Exposure",
             f"{revenue_exposure:.2f}%"
         )
 
     st.divider()
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # REVENUE BY HOTEL
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
     col1, col2 = st.columns(2)
 
     with col1:
 
-        st.markdown(
-            "### 🏨 Revenue by Hotel"
-        )
+        st.markdown("### 🏨 Revenue by Hotel")
 
         if "hotel" in data.columns:
 
@@ -5949,6 +5894,10 @@ def render_revenue_analysis_page(df):
                 ]
                 .sum()
                 .reset_index()
+                .sort_values(
+                    "estimated_revenue",
+                    ascending=False
+                )
             )
 
             fig = px.bar(
@@ -5975,19 +5924,15 @@ def render_revenue_analysis_page(df):
 
         else:
 
-            st.info(
-                "Hotel column is not available."
-            )
+            st.info("Hotel column is not available.")
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # ADR BY HOTEL
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
     with col2:
 
-        st.markdown(
-            "### 💵 ADR by Hotel"
-        )
+        st.markdown("### 💵 Average ADR by Hotel")
 
         if "hotel" in data.columns:
 
@@ -6023,17 +5968,13 @@ def render_revenue_analysis_page(df):
 
         else:
 
-            st.info(
-                "Hotel column is not available."
-            )
+            st.info("Hotel column is not available.")
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # MONTHLY REVENUE
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
-    st.markdown(
-        "### 📅 Monthly Estimated Revenue"
-    )
+    st.markdown("### 📅 Monthly Estimated Revenue")
 
     if "arrival_date_month" in data.columns:
 
@@ -6089,17 +6030,13 @@ def render_revenue_analysis_page(df):
 
     else:
 
-        st.info(
-            "Arrival month column is not available."
-        )
+        st.info("Arrival month column is not available.")
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # ADR BY MONTH
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
-    st.markdown(
-        "### 📈 ADR by Month"
-    )
+    st.markdown("### 📈 Average ADR by Month")
 
     if "arrival_date_month" in data.columns:
 
@@ -6138,17 +6075,15 @@ def render_revenue_analysis_page(df):
             width="stretch"
         )
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # REVENUE BY MARKET SEGMENT
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
     col1, col2 = st.columns(2)
 
     with col1:
 
-        st.markdown(
-            "### 📢 Revenue by Market Segment"
-        )
+        st.markdown("### 📢 Revenue by Market Segment")
 
         if "market_segment" in data.columns:
 
@@ -6188,19 +6123,15 @@ def render_revenue_analysis_page(df):
 
         else:
 
-            st.info(
-                "Market segment column is not available."
-            )
+            st.info("Market segment column is not available.")
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # REVENUE BY CUSTOMER TYPE
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
     with col2:
 
-        st.markdown(
-            "### 👥 Revenue by Customer Type"
-        )
+        st.markdown("### 👥 Revenue by Customer Type")
 
         if "customer_type" in data.columns:
 
@@ -6240,17 +6171,13 @@ def render_revenue_analysis_page(df):
 
         else:
 
-            st.info(
-                "Customer type column is not available."
-            )
+            st.info("Customer type column is not available.")
 
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
     # ADR DISTRIBUTION
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
 
-    st.markdown(
-        "### 📊 ADR Distribution"
-    )
+    st.markdown("### 📊 ADR Distribution")
 
     fig = px.histogram(
         data,
@@ -6268,15 +6195,70 @@ def render_revenue_analysis_page(df):
         width="stretch"
     )
 
-    # =============================================================================================
-    # REVENUE LOST TO CANCELLATION
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # REVENUE BY STAY DURATION
+    # ---------------------------------------------------------------------------------------------
 
-    st.markdown(
-        "### ❌ Estimated Revenue Lost to Cancellation"
+    st.markdown("### 🛏️ Revenue by Stay Duration")
+
+    data["stay_group"] = pd.cut(
+        data["stay_duration"],
+        bins=[
+            0,
+            1,
+            3,
+            7,
+            14,
+            float("inf")
+        ],
+        labels=[
+            "1 night",
+            "2–3 nights",
+            "4–7 nights",
+            "8–14 nights",
+            "15+ nights"
+        ],
+        include_lowest=True
     )
 
-    cancellation_revenue = (
+    stay_revenue = (
+        data.groupby(
+            "stay_group",
+            observed=True
+        )["estimated_revenue"]
+        .sum()
+        .reset_index()
+    )
+
+    fig = px.bar(
+        stay_revenue,
+        x="stay_group",
+        y="estimated_revenue",
+        text="estimated_revenue"
+    )
+
+    fig.update_traces(
+        texttemplate="%{text:,.0f}",
+        textposition="outside"
+    )
+
+    fig.update_layout(
+        xaxis_title="Stay Duration",
+        yaxis_title="Estimated Revenue"
+    )
+
+    st.plotly_chart(
+        fig,
+        width="stretch"
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # REVENUE BY BOOKING STATUS
+    # ---------------------------------------------------------------------------------------------
+
+    st.markdown("### ❌ Revenue Exposure from Cancellation")
+
+    status_data = (
         data.groupby("is_canceled")[
             "estimated_revenue"
         ]
@@ -6284,8 +6266,8 @@ def render_revenue_analysis_page(df):
         .reset_index()
     )
 
-    cancellation_revenue["Booking Status"] = (
-        cancellation_revenue["is_canceled"]
+    status_data["Booking Status"] = (
+        status_data["is_canceled"]
         .map({
             0: "Confirmed",
             1: "Cancelled"
@@ -6293,7 +6275,7 @@ def render_revenue_analysis_page(df):
     )
 
     fig = px.bar(
-        cancellation_revenue,
+        status_data,
         x="Booking Status",
         y="estimated_revenue",
         text="estimated_revenue"
@@ -6314,137 +6296,24 @@ def render_revenue_analysis_page(df):
         width="stretch"
     )
 
-    # =============================================================================================
-    # ADR VS CANCELLATION
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # REVENUE SUMMARY
+    # ---------------------------------------------------------------------------------------------
 
-    col1, col2 = st.columns(2)
+    st.markdown("### 📋 Revenue Summary")
 
-    with col1:
-
-        st.markdown(
-            "### ❌ ADR vs Cancellation"
-        )
-
-        cancellation_adr = (
-            data.groupby("is_canceled")[
-                "adr"
-            ]
-            .mean()
-            .reset_index()
-        )
-
-        cancellation_adr["Booking Status"] = (
-            cancellation_adr["is_canceled"]
-            .map({
-                0: "Confirmed",
-                1: "Cancelled"
-            })
-        )
-
-        fig = px.bar(
-            cancellation_adr,
-            x="Booking Status",
-            y="adr",
-            text="adr"
-        )
-
-        fig.update_traces(
-            texttemplate="%{text:.2f}",
-            textposition="outside"
-        )
-
-        fig.update_layout(
-            xaxis_title="Booking Status",
-            yaxis_title="Average ADR"
-        )
-
-        st.plotly_chart(
-            fig,
-            width="stretch"
-        )
-
-    # =============================================================================================
-    # REVENUE BY CUSTOMER TYPE
-    # =============================================================================================
-
-    with col2:
-
-        st.markdown(
-            "### 🛏️ Revenue by Stay Duration"
-        )
-
-        data["Stay Group"] = pd.cut(
-            data["stay_duration"],
-            bins=[
-                0,
-                1,
-                3,
-                7,
-                14,
-                float("inf")
-            ],
-            labels=[
-                "1 night",
-                "2–3 nights",
-                "4–7 nights",
-                "8–14 nights",
-                "15+ nights"
-            ],
-            include_lowest=True
-        )
-
-        stay_revenue = (
-            data.groupby(
-                "Stay Group",
-                observed=True
-            )["estimated_revenue"]
-            .sum()
-            .reset_index()
-        )
-
-        fig = px.bar(
-            stay_revenue,
-            x="Stay Group",
-            y="estimated_revenue",
-            text="estimated_revenue"
-        )
-
-        fig.update_traces(
-            texttemplate="%{text:,.0f}",
-            textposition="outside"
-        )
-
-        fig.update_layout(
-            xaxis_title="Stay Duration",
-            yaxis_title="Estimated Revenue"
-        )
-
-        st.plotly_chart(
-            fig,
-            width="stretch"
-        )
-
-    # =============================================================================================
-    # REVENUE SUMMARY TABLE
-    # =============================================================================================
-
-    st.markdown(
-        "### 📋 Revenue Summary"
-    )
-
-    summary_data = {
+    summary = pd.DataFrame({
         "Metric": [
             "Estimated Revenue",
             "Confirmed Revenue",
-            "Estimated Cancelled Revenue",
+            "Revenue Lost to Cancellation",
             "Revenue Exposure",
             "Average ADR",
             "Median ADR",
             "Maximum ADR"
         ],
         "Value": [
-            f"{total_estimated_revenue:,.2f}",
+            f"{total_revenue:,.2f}",
             f"{confirmed_revenue:,.2f}",
             f"{cancelled_revenue:,.2f}",
             f"{revenue_exposure:.2f}%",
@@ -6452,135 +6321,118 @@ def render_revenue_analysis_page(df):
             f"{median_adr:,.2f}",
             f"{maximum_adr:,.2f}"
         ]
-    }
-
-    revenue_summary = pd.DataFrame(
-        summary_data
-    )
+    })
 
     st.dataframe(
-        revenue_summary,
+        summary,
         width="stretch",
         hide_index=True
     )
 
-    # =============================================================================================
-    # DYNAMIC BUSINESS INSIGHTS
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # DYNAMIC INSIGHTS
+    # ---------------------------------------------------------------------------------------------
 
     st.divider()
 
-    st.markdown(
-        "### 📌 Key Revenue Insights"
-    )
+    st.markdown("### 📌 Key Revenue Insights")
 
     insights = []
 
-    # Highest revenue hotel
     if "hotel" in data.columns:
 
-        hotel_rev = (
+        hotel_revenue = (
             data.groupby("hotel")[
                 "estimated_revenue"
-            ]
+            ].sum()
+        )
+
+        if not hotel_revenue.empty:
+
+            top_hotel = hotel_revenue.idxmax()
+
+            insights.append(
+                f"🏨 **{top_hotel}** generates the highest estimated revenue."
+            )
+
+    if "arrival_date_month" in data.columns:
+
+        month_revenue = (
+            data.groupby(
+                "arrival_date_month"
+            )["estimated_revenue"]
             .sum()
         )
 
-        if not hotel_rev.empty:
+        if not month_revenue.empty:
 
-            top_hotel = hotel_rev.idxmax()
-            top_hotel_revenue = hotel_rev.max()
-
-            insights.append(
-                f"🏨 **{top_hotel}** generates the highest estimated "
-                f"revenue at **{top_hotel_revenue:,.2f}**."
-            )
-
-    # Highest ADR month
-    if "arrival_date_month" in data.columns:
-
-        month_adr = (
-            data.groupby(
-                "arrival_date_month"
-            )["adr"]
-            .mean()
-        )
-
-        if not month_adr.empty:
-
-            top_adr_month = month_adr.idxmax()
-            top_adr_value = month_adr.max()
+            top_month = month_revenue.idxmax()
 
             insights.append(
-                f"📈 **{top_adr_month}** has the highest average ADR "
-                f"at **{top_adr_value:,.2f}**."
+                f"📅 **{top_month}** records the highest estimated monthly revenue."
             )
 
-    # Highest revenue segment
     if "market_segment" in data.columns:
 
-        segment_rev = (
+        segment_revenue = (
             data.groupby(
                 "market_segment"
             )["estimated_revenue"]
             .sum()
         )
 
-        if not segment_rev.empty:
+        if not segment_revenue.empty:
 
-            top_segment = segment_rev.idxmax()
+            top_segment = segment_revenue.idxmax()
 
             insights.append(
-                f"📢 **{top_segment}** contributes the highest "
-                f"estimated revenue among market segments."
+                f"📢 **{top_segment}** generates the highest estimated revenue among market segments."
             )
 
-    # Cancellation exposure
     insights.append(
-        f"❌ Approximately **{revenue_exposure:.1f}%** of estimated "
-        f"revenue is associated with cancelled bookings."
+        f"💵 Average ADR across the filtered dataset is **{average_adr:,.2f}**."
     )
 
-    # ADR
     insights.append(
-        f"💵 The average ADR across the filtered dataset is "
-        f"**{average_adr:,.2f}**."
+        f"❌ **{revenue_exposure:.1f}%** of estimated revenue is associated with cancelled bookings."
     )
 
     for insight in insights[:5]:
-
         st.info(insight)
 
-    # =============================================================================================
-    # BUSINESS RECOMMENDATIONS
-    # =============================================================================================
+    # ---------------------------------------------------------------------------------------------
+    # RECOMMENDATIONS
+    # ---------------------------------------------------------------------------------------------
 
-    st.markdown(
-        "### 💡 Business Recommendations"
+    st.markdown("### 💡 Business Recommendations")
+
+    st.success(
+        "📈 Consider dynamic pricing during periods with strong booking demand and ADR."
     )
 
-    recommendations = [
-        "💰 Focus pricing strategies on periods and segments generating strong ADR and revenue.",
-        "📈 Consider dynamic pricing during high-demand periods when ADR and booking volume increase.",
-        "❌ Monitor revenue exposure from cancelled bookings and consider stronger deposit policies for high-risk bookings.",
-        "📢 Prioritize marketing channels and customer segments that generate strong revenue with manageable cancellation levels.",
-        "🛏️ Develop longer-stay packages when longer stays demonstrate favorable revenue characteristics."
-    ]
+    st.success(
+        "❌ Monitor cancelled bookings that represent significant estimated revenue exposure."
+    )
 
-    for recommendation in recommendations:
+    st.success(
+        "📢 Prioritize channels and market segments that combine strong revenue with lower cancellation."
+    )
 
-        st.success(
-            recommendation
-        )
+    st.success(
+        "🛏️ Consider longer-stay packages when longer stays generate favorable revenue."
+    )
 
-    # =============================================================================================
-    # REVENUE DISCLAIMER
-    # =============================================================================================
+    st.success(
+        "💰 Use ADR and stay duration together when evaluating revenue opportunities."
+    )
+
+    # ---------------------------------------------------------------------------------------------
+    # DISCLAIMER
+    # ---------------------------------------------------------------------------------------------
 
     st.caption(
         "ℹ️ Estimated Revenue = ADR × Stay Duration. "
-        "This is an analytical estimate and should not be interpreted as actual "
-        "collected hotel revenue."
+        "This is an analytical estimate and should not be interpreted as actual collected revenue."
     )
 
 #===========================================================================================================================================================================================================
