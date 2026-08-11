@@ -7974,7 +7974,7 @@ def render_business_insights_page(df):
     st.caption(
         "All findings shown on this page are calculated directly from the "
         "currently available prepared dataset. Values will change when filters are applied."
-    )s
+    )
 
 #===========================================================================================================================================================================================================
 #page routing based on selected page
