@@ -7783,6 +7783,7 @@ def render_business_insights_page(df):
 
             st.markdown(f"### {item['icon']} {item['title']}")
             st.write(item['text'] + '\n' + '\n', unsafe_allow_html=True)
+            st.divider()
 
     # =============================================================================================
     # DATASET-BASED BUSINESS TAKEAWAYS
