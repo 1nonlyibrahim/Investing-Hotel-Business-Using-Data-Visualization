@@ -7782,13 +7782,13 @@ def render_business_insights_page(df):
         for item in insights:
 
             st.markdown(f"### {item['icon']} {item['title']}")
-            st.write(item['text'])
+            st.write(item['text'] + '\n', unsafe_allow_html=True)
 
     # =============================================================================================
     # DATASET-BASED BUSINESS TAKEAWAYS
     # =============================================================================================
 
-    st.divider()
+    st.divider( )
 
     st.markdown("### 🎯 Business Takeaways From The Data")
 
