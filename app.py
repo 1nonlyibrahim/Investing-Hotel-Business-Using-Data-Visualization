@@ -242,15 +242,8 @@ else:
         st.session_state["uploaded_file_name"] = uploaded_file.name
 
 # =================================================================================================
-# 🎛️ PROFESSIONAL GLOBAL FILTERS
+# 🎛️ MAIN PAGE GLOBAL FILTERS
 # =================================================================================================
-st.markdown(
-        """
-        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>FILTERS</div>
-        """,
-        unsafe_allow_html=True,
-    )
-
 def show_global_filters(df):
 
     filtered_df = df.copy()
@@ -1031,6 +1024,53 @@ def show_global_filters(df):
 
     return filtered_df
 
+prepared_df = st.session_state.get("prepared_df")
+
+if (
+    st.session_state.get("preparation_complete", False)
+    and prepared_df is not None
+    and not prepared_df.empty
+):
+
+    st.markdown(
+        """
+        <div style="
+            text-align:center;
+            font-size:26px;
+            font-weight:700;
+            margin-top:20px;
+            margin-bottom:8px;
+        ">
+            🎛️ Dashboard Filters
+        </div>
+
+        <div style="
+            text-align:center;
+            color:#999999;
+            font-size:14px;
+            margin-bottom:15px;
+        ">
+            Customize the analysis using the filters below.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
+
+    filtered_df = show_global_filters(prepared_df)
+
+    st.session_state["filtered_df"] = filtered_df
+
+else:
+
+    filtered_df = prepared_df
+    
+st.markdown(
+        """
+        <div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:6px;'>FILTERS</div>
+        """,
+        unsafe_allow_html=True,
+    )
+
 #=========================================================================================================================================================================================================
 #DATA PREPARATION BUTTON
 #=========================================================================================================================================================================================================
@@ -1431,13 +1471,6 @@ with st.sidebar:
         "<div style='font-size:30px;font-weight:700;text-align:center;margin-bottom:10px;'>📋 Prepared Dataset</div>",
         unsafe_allow_html=True,
     )
-
-    prepared_df = st.session_state.get("prepared_df")
-    if prepared_df is not None and not prepared_df.empty:
-        filtered_df = show_global_filters(prepared_df)
-        st.session_state["filtered_df"] = filtered_df
-    else:
-        filtered_df = None
 
     with st.expander("📊 Dataset Information", expanded=False):
         if prepared_df is not None:
@@ -9351,31 +9384,31 @@ def render_recommendations_page(df):
 #===========================================================================================================================================================================================================
 
 if selected_page == "📊 Executive Overview":
-    render_executive_overview_page(prepared_df)
+    render_executive_overview_page(filtered_df)
 
 elif selected_page == "🏨 Hotel Performance":
-    render_hotel_performance_page(prepared_df)
+    render_hotel_performance_page(filtered_df)
 
 elif selected_page == "📅 Booking Trends":
-    render_booking_trends_page(prepared_df)
+    render_booking_trends_page(filtered_df)
 
 elif selected_page == "❌ Cancellation Analysis":
-    render_cancellation_analysis_page(prepared_df)
+    render_cancellation_analysis_page(filtered_df)
 
 elif selected_page == "⏳ Lead Time Analysis":
-    render_lead_time_analysis_page(prepared_df)
+    render_lead_time_analysis_page(filtered_df)
 
 elif selected_page == "🛏️ Stay Duration":
-    render_stay_duration_analysis_page(prepared_df)
+    render_stay_duration_analysis_page(filtered_df)
 
 elif selected_page == "👥 Customer & Market Analysis":
-    render_customer_market_analysis_page(prepared_df)
+    render_customer_market_analysis_page(filtered_df)
 
 elif selected_page == "🔎 Relationship Analysis":
-    render_relationship_analysis_page(prepared_df)
+    render_relationship_analysis_page(filtered_df)
 
 elif selected_page == "📌 Business Insights":
-    render_business_insights_page(prepared_df)
+    render_business_insights_page(filtered_df)
 
 elif selected_page == "💡 Recommendations":
-    render_recommendations_page(prepared_df)
+    render_recommendations_page(filtered_df)
